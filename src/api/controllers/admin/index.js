@@ -164,6 +164,19 @@ const fetchInstituteDetail = async (req, res) => {
   }
 };
 
+const fetchInstituteList = async (req, res) => {
+  try {
+    const find = await Institute.find({});
+    res.status(200).json({
+      status: true,
+      message: "Institute fetch successfully.",
+      data: find,
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 const deleteInstitute = async (req, res) => {
   try {
     const { institute_id } = req.body;
@@ -186,5 +199,6 @@ module.exports = {
   createInstitute,
   editInstitute,
   fetchInstituteDetail,
-  deleteInstitute
+  deleteInstitute,
+  fetchInstituteList
 };

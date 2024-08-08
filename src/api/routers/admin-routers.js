@@ -10,6 +10,7 @@ const {
   editInstitute,
   fetchInstituteDetail,
   deleteInstitute,
+  fetchInstituteList,
 } = require("../controllers/admin");
 const { authAdminMiddleware } = require("../middlewares/authMiddleware");
 
@@ -23,6 +24,12 @@ router.post(
   authAdminMiddleware,
   upload,
   fetchInstituteDetail
+);
+router.post(
+  "/fetch_institute_list",
+  authAdminMiddleware,
+  upload,
+  fetchInstituteList
 );
 
 module.exports = router;
