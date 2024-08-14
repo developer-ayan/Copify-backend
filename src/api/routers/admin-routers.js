@@ -16,7 +16,21 @@ const {
   editDepartment,
   deleteDepartment,
   fetchDepartmentList,
-  SearchInstitute
+  SearchInstitute,
+  createSubject,
+  editSubject,
+  deleteSubject,
+  fetchSubjectList,
+  createDeliveryCharges,
+  editDeliveryCharges,
+  fetchDeliveryChargesList,
+  createPaperSize,
+  editPaperSize,
+  deletePaperSize,
+  fetchPaperSizeList,
+  createRiderRadius,
+  editRiderRadius,
+  fetchRiderRadiusList
 } = require("../controllers/admin");
 
 // Import middleware
@@ -39,5 +53,27 @@ router.post("/create_department", authAdminMiddleware, upload, createDepartment)
 router.post("/edit_department", authAdminMiddleware, upload, editDepartment);
 router.post("/delete_department", authAdminMiddleware, upload, deleteDepartment);
 router.post("/fetch_department_list", authAdminMiddleware, upload, fetchDepartmentList);
+
+// subject routes with authentication middleware
+router.post("/create_subject", authAdminMiddleware, upload, createSubject);
+router.post("/edit_subject", authAdminMiddleware, upload, editSubject); 
+router.post("/delete_subject", authAdminMiddleware, upload, deleteSubject); 
+router.post("/fetch_subject_list", authAdminMiddleware, upload, fetchSubjectList);
+
+// delivery charges routes with authentication middleware
+router.post("/create_delivery_charges", authAdminMiddleware, upload, createDeliveryCharges);
+router.post("/edit_delivery_charges", authAdminMiddleware, upload, editDeliveryCharges);
+router.post("/fetch_delivery_charges_list", authAdminMiddleware, upload, fetchDeliveryChargesList);
+
+// delivery charges routes with authentication middleware
+router.post("/create_paper_size", authAdminMiddleware, upload, createPaperSize);
+router.post("/edit_paper_size", authAdminMiddleware, upload, editPaperSize);
+router.post("/delete_paper_size", authAdminMiddleware, upload, deletePaperSize);
+router.post("/fetch_paper_size_list", authAdminMiddleware, upload, fetchPaperSizeList);
+
+// rider readius charges routes with authentication middleware
+router.post("/create_rider_radius", authAdminMiddleware, upload, createRiderRadius);
+router.post("/edit_rider_radius", authAdminMiddleware, upload, editRiderRadius);
+router.post("/fetch_rider_radius_list", authAdminMiddleware, upload, fetchRiderRadiusList);
 
 module.exports = router;

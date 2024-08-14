@@ -9,6 +9,10 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const Institute = require("../../models/common/institute");
 const Department = require("../../models/common/department");
+const Subject = require("../../models/common/subject");
+const DeliveryCharges = require("../../models/common/delivery-charges");
+const PaperSizes = require("../../models/common/paper-sizes");
+const RiderRadius = require("../../models/common/rider-radius");
 
 const login = async (req, res) => {
   try {
@@ -341,6 +345,309 @@ const deleteDepartment = async (req, res) => {
   }
 };
 
+const createSubject = async (req, res) => {
+  try {
+    const { user_id, institute_id, subject_name } = req.body;
+    const validation = validatorMethod(
+      { user_id, institute_id, subject_name },
+      res
+    );
+
+    if (validation) {
+      const created = await Subject.create({
+        user_id,
+        institute_id,
+        subject_name,
+      });
+      if (created) {
+        res.status(200).json({
+          status: true,
+          message: "Subject create successfully.",
+          data: created,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const editSubject = async (req, res) => {
+  try {
+    const { institute_subject_id, subject_name } = req.body;
+    const validation = validatorMethod({ institute_subject_id }, res);
+
+    if (validation) {
+      // Update the document by ID
+      const updated = await Subject.findOne({ institute_subject_id });
+      updated.subject_name = subject_name || updated.subject_name;
+      await updated.save();
+      res.status(200).json({
+        status: true,
+        message: "Subject update successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const deleteSubject = async (req, res) => {
+  try {
+    const { institute_subject_id } = req.body;
+    const validation = validatorMethod({ institute_subject_id }, res);
+    if (validation) {
+      const deleted = await Subject.findOneAndDelete({ institute_subject_id });
+      res.status(200).json({
+        status: true,
+        message: "Subject delete successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchSubjectList = async (req, res) => {
+  try {
+    const { institute_id } = req.body;
+    const validation = validatorMethod(
+      { institute_id },
+      res
+    );
+    if (validation) {
+      const find = await Subject.find({ institute_id })
+      res.status(200).json({
+        status: true,
+        message: "Subject fetch successfully.",
+        data: find,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const createDeliveryCharges = async (req, res) => {
+  try {
+    const { user_id, delivery_charges } = req.body;
+    const validation = validatorMethod(
+      { user_id, delivery_charges },
+      res
+    );
+
+    if (validation) {
+      const created = await DeliveryCharges.create({
+        user_id,
+        delivery_charges,
+      });
+      if (created) {
+        res.status(200).json({
+          status: true,
+          message: "Delivery charges set successfully.",
+          data: created,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const editDeliveryCharges = async (req, res) => {
+  try {
+    const { delivery_charges, _id } = req.body;
+    const validation = validatorMethod({ delivery_charges }, res);
+
+    if (validation) {
+      // Update the document by ID
+      const updated = await DeliveryCharges.findOne({ _id: _id });
+      updated.delivery_charges = delivery_charges || updated.delivery_charges;
+      await updated.save();
+      res.status(200).json({
+        status: true,
+        message: "Delivery charges update successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchDeliveryChargesList = async (req, res) => {
+  try {
+    const find = await DeliveryCharges.find({})
+    res.status(200).json({
+      status: true,
+      message: "Delivery charges fetch successfully.",
+      data: find,
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const createPaperSize = async (req, res) => {
+  try {
+    const { user_id, paper_size } = req.body;
+    const validation = validatorMethod(
+      { user_id, paper_size },
+      res
+    );
+
+    if (validation) {
+      const created = await PaperSizes.create({
+        user_id,
+        paper_size,
+      });
+      if (created) {
+        res.status(200).json({
+          status: true,
+          message: "Paper size create successfully.",
+          data: created,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const editPaperSize = async (req, res) => {
+  try {
+    const { paper_size, paper_size_id } = req.body;
+    const validation = validatorMethod({ paper_size, paper_size_id }, res);
+
+    if (validation) {
+      // Update the document by ID
+      const updated = await PaperSizes.findOne({ paper_size_id });
+      updated.paper_size = paper_size || updated.paper_size;
+      await updated.save();
+      res.status(200).json({
+        status: true,
+        message: "Paper size update successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+
+const deletePaperSize = async (req, res) => {
+  try {
+    const { paper_size_id } = req.body;
+    const validation = validatorMethod({ paper_size_id }, res);
+    if (validation) {
+      const deleted = await PaperSizes.findOneAndDelete({ paper_size_id });
+      res.status(200).json({
+        status: true,
+        message: "Paper size delete successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchPaperSizeList = async (req, res) => {
+  try {
+    const find = await PaperSizes.find({})
+    res.status(200).json({
+      status: true,
+      message: "Paper size fetch successfully.",
+      data: find,
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const createRiderRadius = async (req, res) => {
+  try {
+    const { user_id, rider_radius } = req.body;
+    const validation = validatorMethod(
+      { user_id, rider_radius },
+      res
+    );
+
+    if (validation) {
+      const created = await RiderRadius.create({
+        user_id,
+        rider_radius,
+      });
+      if (created) {
+        res.status(200).json({
+          status: true,
+          message: "Rider radius set successfully.",
+          data: created,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const editRiderRadius = async (req, res) => {
+  try {
+    const { rider_radius_id, rider_radius } = req.body;
+    const validation = validatorMethod({ rider_radius_id, rider_radius }, res);
+
+    if (validation) {
+      // Update the document by ID
+      const updated = await RiderRadius.findOne({ rider_radius_id });
+      updated.rider_radius = rider_radius || updated.rider_radius;
+      await updated.save();
+      res.status(200).json({
+        status: true,
+        message: "Rider radius update successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchRiderRadiusList = async (req, res) => {
+  try {
+    const find = await RiderRadius.find({})
+    res.status(200).json({
+      status: true,
+      message: "Rider radius fetch successfully.",
+      data: find,
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 module.exports = {
   login,
   register,
@@ -353,5 +660,19 @@ module.exports = {
   createDepartment,
   editDepartment,
   deleteDepartment,
-  fetchDepartmentList
+  fetchDepartmentList,
+  createSubject,
+  editSubject,
+  deleteSubject,
+  fetchSubjectList,
+  createDeliveryCharges,
+  editDeliveryCharges,
+  fetchDeliveryChargesList,
+  createPaperSize,
+  editPaperSize,
+  deletePaperSize,
+  fetchPaperSizeList,
+  createRiderRadius,
+  editRiderRadius,
+  fetchRiderRadiusList
 };
