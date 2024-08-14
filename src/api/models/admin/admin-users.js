@@ -38,21 +38,21 @@ const adminUserSchema = new mongoose.Schema(
 );
 
 // Apply the autoIncrement plugin to the userSchema
-adminUserSchema.plugin(AutoIncrement, { inc_field: "user_id" });
+adminUserSchema.plugin(AutoIncrement, { inc_field: "user_id", id: 'admin_users_seq' });
 
 // Pre-save middleware to hash the password
 adminUserSchema.pre('save', async function (next) {
-    if (this.isModified('password') || this.isNew) {
-      try {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
-      } catch (error) {
-        return next(error);
-      }
+  if (this.isModified('password') || this.isNew) {
+    try {
+      const salt = await bcrypt.genSalt(10);
+      this.password = await bcrypt.hash(this.password, salt);
+    } catch (error) {
+      return next(error);
     }
-    next();
-  });
+  }
+  next();
+});
 
-const AdminUsers = mongoose.model("admin_users", adminUserSchema);
+const AdminUsers = mongoose.models.admin_users || mongoose.model("admin_users", adminUserSchema);
 
 module.exports = AdminUsers;

@@ -1,41 +1,48 @@
 var fs = require("fs");
 const OneSignal = require("onesignal-node");
+const path = require("path");
 // const Notification = require("../api/models/common/notification");
-const Users = require("../api/models/auth/users");
+// const Users = require('../../models/app/user');
 const nodemailer = require("nodemailer");
+const uploads = path.join(__dirname, '../uploads/');
 
 const delete_file = async (path, fileName) => {
-  console.log(path + fileName);
-  fs.unlink("./" + path + fileName, function (err) {
-    console.log("file deleted successfully");
+  console.log(uploads + fileName);
+  fs.unlink(uploads + fileName, function (err) {
+  });
+};
+
+const check_extension = async (fileName) => {
+  console.log(uploads + fileName);
+  fs.unlink(uploads + fileName, function (err) {
   });
 };
 
 async function sendNotification(user_id, heading, message) {
   const restApi = "OTMzNDhjYTItOGI2NC00ZDFlLTgxODMtODI2OTMxZGIzODUy";
   const appId = "2fe1426b-1143-4ac2-bfa7-3fa03a5d432c";
-  try {
-    const find = await Users.findOne({ _id: user_id });
+  // try {
+  //   const find = await Users.findOne({ _id: user_id });
 
-    const client = new OneSignal.Client(appId, restApi);
+  //   const client = new OneSignal.Client(appId, restApi);
 
-    const notification = {
-      headings: { en: heading || "Notification Title" },
-      contents: { en: message || "Hello, this is a push notification!" },
-      include_player_ids: [find?.notification_token],
-      // included_segments: ['All'],
-    };
+  //   const notification = {
+  //     headings: { en: heading || "Notification Title" },
+  //     contents: { en: message || "Hello, this is a push notification!" },
+  //     include_player_ids: [find?.notification_token],
+  //     // included_segments: ['All'],
+  //   };
 
-    const response = await client.createNotification(notification);
-    const transaction = await Notification.create({
-      user_id,
-      heading,
-      message,
-    });
-    return true;
-  } catch (error) {
-    return error.message;
-  }
+  //   const response = await client.createNotification(notification);
+  //   const transaction = await Notification.create({
+  //     user_id,
+  //     heading,
+  //     message,
+  //   });
+  //   return true;
+  // } catch (error) {
+  //   return error.message;
+  // }
 }
 
 // async function sendEmail() {
@@ -123,7 +130,7 @@ function validatorMethod(args, res) {
     // Respond with status code 200 and error messages if there are validation errors
     res.status(200).json({
       success: false,
-      messages: error,
+      message: error,
     });
     return 0;
   } else {
@@ -153,4 +160,5 @@ module.exports = {
   sendEmail,
   validatorMethod,
   catchErrorValidation,
+  check_extension
 };

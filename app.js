@@ -9,13 +9,15 @@ const app = express();
 const port = process.env.PORT || 3002;
 
 app.use(express.json());
-app.use(cors({origin : 'https://evcharging-be0a6.web.app'}));
+app.use(cors({ origin: 'http://localhost:3000' }));
 
 const authRoutes = require('./src/api/routers/auth-routers');
 const adminRoutes = require('./src/api/routers/admin-routers');
+const appRoutes = require('./src/api/routers/app-routers');
 
 app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
+app.use('/app', appRoutes);
 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
