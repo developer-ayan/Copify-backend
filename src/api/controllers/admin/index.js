@@ -2,6 +2,7 @@
 const {
   validatorMethod,
   catchErrorValidation,
+  delete_file,
 } = require("../../../utils/helpers");
 const { secret_key } = require("../../../utils/static-values");
 const AdminUsers = require("../../models/admin/admin-users");
@@ -13,6 +14,8 @@ const Subject = require("../../models/common/subject");
 const DeliveryCharges = require("../../models/common/delivery-charges");
 const PaperSizes = require("../../models/common/paper-sizes");
 const RiderRadius = require("../../models/common/rider-radius");
+const PromoCodes = require("../../models/common/promo-codes");
+const Extensions = require("../../models/common/extensions");
 
 const login = async (req, res) => {
   try {
@@ -176,7 +179,7 @@ const fetchInstituteDetail = async (req, res) => {
 
 const SearchInstitute = async (req, res) => {
   try {
-    const { search } = req.body
+    const { search } = req.body;
 
     if (search) {
       // Constructing regex based on the input
@@ -186,28 +189,27 @@ const SearchInstitute = async (req, res) => {
       const matchCriteria = {
         $or: [
           { institute_name: { $regex: regex } },
-          { institute_location: { $regex: regex } }
-        ]
+          { institute_location: { $regex: regex } },
+        ],
       };
       const find = await Institute.aggregate([
         {
-          $match: matchCriteria
-        }
+          $match: matchCriteria,
+        },
       ]);
       if (find) {
         res.status(200).json({
           status: true,
           message: "Institute fetched successfully.",
-          data: find
+          data: find,
         });
       } else {
         res.status(200).json({
           status: true,
           message: "Institute fetched successfully.",
-          data: []
+          data: [],
         });
       }
-
     } else {
       const find = await Institute.find({});
       res.status(200).json({
@@ -220,7 +222,6 @@ const SearchInstitute = async (req, res) => {
     catchErrorValidation(error, res);
   }
 };
-
 
 const fetchInstituteList = async (req, res) => {
   try {
@@ -254,12 +255,9 @@ const deleteInstitute = async (req, res) => {
 const fetchDepartmentList = async (req, res) => {
   try {
     const { institute_id } = req.body;
-    const validation = validatorMethod(
-      { institute_id },
-      res
-    );
+    const validation = validatorMethod({ institute_id }, res);
     if (validation) {
-      const find = await Department.find({ institute_id })
+      const find = await Department.find({ institute_id });
       res.status(200).json({
         status: true,
         message: "Department fetch successfully.",
@@ -271,7 +269,6 @@ const fetchDepartmentList = async (req, res) => {
         message: "Something went wrong!",
       });
     }
-
   } catch (error) {
     catchErrorValidation(error, res);
   }
@@ -416,12 +413,9 @@ const deleteSubject = async (req, res) => {
 const fetchSubjectList = async (req, res) => {
   try {
     const { institute_id } = req.body;
-    const validation = validatorMethod(
-      { institute_id },
-      res
-    );
+    const validation = validatorMethod({ institute_id }, res);
     if (validation) {
-      const find = await Subject.find({ institute_id })
+      const find = await Subject.find({ institute_id });
       res.status(200).json({
         status: true,
         message: "Subject fetch successfully.",
@@ -433,7 +427,6 @@ const fetchSubjectList = async (req, res) => {
         message: "Something went wrong!",
       });
     }
-
   } catch (error) {
     catchErrorValidation(error, res);
   }
@@ -442,10 +435,7 @@ const fetchSubjectList = async (req, res) => {
 const createDeliveryCharges = async (req, res) => {
   try {
     const { user_id, delivery_charges } = req.body;
-    const validation = validatorMethod(
-      { user_id, delivery_charges },
-      res
-    );
+    const validation = validatorMethod({ user_id, delivery_charges }, res);
 
     if (validation) {
       const created = await DeliveryCharges.create({
@@ -492,7 +482,7 @@ const editDeliveryCharges = async (req, res) => {
 
 const fetchDeliveryChargesList = async (req, res) => {
   try {
-    const find = await DeliveryCharges.find({})
+    const find = await DeliveryCharges.find({});
     res.status(200).json({
       status: true,
       message: "Delivery charges fetch successfully.",
@@ -506,10 +496,7 @@ const fetchDeliveryChargesList = async (req, res) => {
 const createPaperSize = async (req, res) => {
   try {
     const { user_id, paper_size } = req.body;
-    const validation = validatorMethod(
-      { user_id, paper_size },
-      res
-    );
+    const validation = validatorMethod({ user_id, paper_size }, res);
 
     if (validation) {
       const created = await PaperSizes.create({
@@ -554,7 +541,6 @@ const editPaperSize = async (req, res) => {
   }
 };
 
-
 const deletePaperSize = async (req, res) => {
   try {
     const { paper_size_id } = req.body;
@@ -573,7 +559,7 @@ const deletePaperSize = async (req, res) => {
 
 const fetchPaperSizeList = async (req, res) => {
   try {
-    const find = await PaperSizes.find({})
+    const find = await PaperSizes.find({});
     res.status(200).json({
       status: true,
       message: "Paper size fetch successfully.",
@@ -587,10 +573,7 @@ const fetchPaperSizeList = async (req, res) => {
 const createRiderRadius = async (req, res) => {
   try {
     const { user_id, rider_radius } = req.body;
-    const validation = validatorMethod(
-      { user_id, rider_radius },
-      res
-    );
+    const validation = validatorMethod({ user_id, rider_radius }, res);
 
     if (validation) {
       const created = await RiderRadius.create({
@@ -637,10 +620,189 @@ const editRiderRadius = async (req, res) => {
 
 const fetchRiderRadiusList = async (req, res) => {
   try {
-    const find = await RiderRadius.find({})
+    const find = await RiderRadius.find({});
     res.status(200).json({
       status: true,
       message: "Rider radius fetch successfully.",
+      data: find,
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const createPromoCode = async (req, res) => {
+  try {
+    const { user_id, start_date, end_date, promo_code } = req.body;
+    const validation = validatorMethod(
+      { user_id, start_date, end_date, promo_code },
+      res
+    );
+
+    if (validation) {
+      const created = await PromoCodes.create({
+        user_id,
+        start_date,
+        end_date,
+        promo_code,
+      });
+      if (created) {
+        res.status(200).json({
+          status: true,
+          message: "Promo code create successfully.",
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const editPromoCode = async (req, res) => {
+  try {
+    const { promo_code_id, start_date, end_date, promo_code } = req.body;
+    const validation = validatorMethod({ promo_code_id }, res);
+
+    if (validation) {
+      // Update the document by ID
+      const updated = await PromoCodes.findOne({ promo_code_id });
+      updated.start_date = start_date || updated.start_date;
+      updated.end_date = end_date || updated.end_date;
+      updated.promo_code = promo_code || updated.promo_code;
+      await updated.save();
+      res.status(200).json({
+        status: true,
+        message: "Promo code update successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const deletePromoCode = async (req, res) => {
+  try {
+    const { promo_code_id } = req.body;
+    const validation = validatorMethod({ promo_code_id }, res);
+    if (validation) {
+      const deleted = await PromoCodes.findOneAndDelete({ promo_code_id });
+      res.status(200).json({
+        status: true,
+        message: "Promo code delete successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchPromoCodeList = async (req, res) => {
+  try {
+    const find = await PromoCodes.find({});
+    res.status(200).json({
+      status: true,
+      message: "Promo codes fetch successfully.",
+      data: find,
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const createExtension = async (req, res) => {
+  try {
+    const { user_id, extension_name } = req.body;
+    const validation = validatorMethod(
+      {
+        user_id,
+        extension_name,
+        file_upload: req.file ? req.file.filename : null,
+      },
+      res
+    );
+    if (validation) {
+      const created = await Extensions.create({
+        user_id,
+        extension_name,
+        file_upload: req.file ? req.file.filename : null,
+      });
+      if (created) {
+        res.status(200).json({
+          status: true,
+          message: "Extension create successfully.",
+          data: created,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    } else {
+      req.file && delete_file("uploads/", req.file.filename);
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const editExtension = async (req, res) => {
+  try {
+    const { extension_id, extension_name, file_upload } = req.body;
+    const validation = validatorMethod(
+      {
+        extension_id,
+      },
+      res
+    );
+
+    if (validation) {
+      // Update the document by ID
+      const updated = await Extensions.findOne({ extension_id });
+      updated.extension_name = extension_name || updated.extension_name;
+      updated.file_upload = file_upload || updated.file_upload;
+      await updated.save();
+      res.status(200).json({
+        status: true,
+        message: "Extension update successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const deleteExtension = async (req, res) => {
+  try {
+    const { extension_id } = req.body;
+    const validation = validatorMethod({ extension_id }, res);
+    if (validation) {
+      const find = await Extensions.findOne({ extension_id });
+      if (find) {
+        await delete_file("uploads/", find?.file_upload);
+        const deleted = await Extensions.findOneAndDelete({ extension_id });
+        res.status(200).json({
+          status: true,
+          message: "Extension delete successfully.",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchExtensionList = async (req, res) => {
+  try {
+    const find = await Extensions.find({});
+    res.status(200).json({
+      status: true,
+      message: "Extensions fetch successfully.",
       data: find,
     });
   } catch (error) {
@@ -674,5 +836,13 @@ module.exports = {
   fetchPaperSizeList,
   createRiderRadius,
   editRiderRadius,
-  fetchRiderRadiusList
+  fetchRiderRadiusList,
+  createPromoCode,
+  editPromoCode,
+  deletePromoCode,
+  fetchPromoCodeList,
+  createExtension,
+  editExtension,
+  deleteExtension,
+  fetchExtensionList,
 };
