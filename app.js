@@ -10,6 +10,7 @@ const port = process.env.PORT || 3002;
 
 app.use(express.json());
 app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(express.static('public'))
 
 const authRoutes = require('./src/api/routers/auth-routers');
 const adminRoutes = require('./src/api/routers/admin-routers');

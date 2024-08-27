@@ -633,9 +633,9 @@ const fetchRiderRadiusList = async (req, res) => {
 
 const createPromoCode = async (req, res) => {
   try {
-    const { user_id, start_date, end_date, promo_code } = req.body;
+    const { user_id, start_date, end_date, promo_code, discount } = req.body;
     const validation = validatorMethod(
-      { user_id, start_date, end_date, promo_code },
+      { user_id, start_date, end_date, promo_code, discount },
       res
     );
 
@@ -644,6 +644,7 @@ const createPromoCode = async (req, res) => {
         user_id,
         start_date,
         end_date,
+        discount,
         promo_code,
       });
       if (created) {
@@ -665,7 +666,7 @@ const createPromoCode = async (req, res) => {
 
 const editPromoCode = async (req, res) => {
   try {
-    const { promo_code_id, start_date, end_date, promo_code } = req.body;
+    const { promo_code_id, start_date, end_date, promo_code, discount } = req.body;
     const validation = validatorMethod({ promo_code_id }, res);
 
     if (validation) {
@@ -674,6 +675,7 @@ const editPromoCode = async (req, res) => {
       updated.start_date = start_date || updated.start_date;
       updated.end_date = end_date || updated.end_date;
       updated.promo_code = promo_code || updated.promo_code;
+      updated.discount = discount || updated.discount;
       await updated.save();
       res.status(200).json({
         status: true,

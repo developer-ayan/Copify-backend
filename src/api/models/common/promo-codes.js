@@ -20,6 +20,11 @@ const promoCodeSchema = new mongoose.Schema(
         message: "End date must be at least one day after the start date",
       },
     },
+    discount: {
+      type: String,
+      required: [true, "Discount is required"],
+      trim: true,
+    },
     promo_code: {
       type: String,
       required: [true, "Promo code is required"],
