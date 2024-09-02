@@ -4,18 +4,23 @@ const path = require("path");
 // const Notification = require("../api/models/common/notification");
 // const Users = require('../../models/app/user');
 const nodemailer = require("nodemailer");
-const uploads = path.join(__dirname, '../uploads/');
+const uploads = path.join(__dirname, "../uploads/");
 
 const delete_file = async (path, fileName) => {
   console.log(uploads + fileName);
-  fs.unlink(uploads + fileName, function (err) {
-  });
+  fs.unlink(uploads + fileName, function (err) {});
 };
 
 const check_extension = async (fileName) => {
   console.log(uploads + fileName);
-  fs.unlink(uploads + fileName, function (err) {
+  fs.unlink(uploads + fileName, function (err) {});
+};
+
+const modifiedArray = async (id, value, arr) => {
+  const modfiedArr = arr.map((item, index) => {
+    return { id: item[id], value: item[value] };
   });
+  return modfiedArr;
 };
 
 async function sendNotification(user_id, heading, message) {
@@ -160,5 +165,6 @@ module.exports = {
   sendEmail,
   validatorMethod,
   catchErrorValidation,
-  check_extension
+  check_extension,
+  modifiedArray
 };
