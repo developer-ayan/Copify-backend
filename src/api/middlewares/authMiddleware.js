@@ -9,7 +9,7 @@ async function authAdminMiddleware(req, res, next) {
     const token = authHeader && authHeader.replace('Bearer ', '');
 
     if (!token) {
-        return res.status(401).json({
+        return res.status(200).json({
             status: false,
             message: 'Access denied. No token provided.',
         });
@@ -20,7 +20,7 @@ async function authAdminMiddleware(req, res, next) {
         AdminUsers.findOne({ user_id: decoded.user_id, token: token })
             .then(user => {
                 if (!user) {
-                    return res.status(401).json({
+                    return res.status(200).json({
                         status: false,
                         message: 'Invalid token.',
                     });
@@ -31,13 +31,13 @@ async function authAdminMiddleware(req, res, next) {
                 next(); // Proceed to the next middleware or route handler
             })
             .catch(err => {
-                res.status(500).json({
+                res.status(200).json({
                     status: false,
                     message: 'Internal server error.',
                 });
             });
     } catch (error) {
-        res.status(400).json({
+        res.status(200).json({
             status: false,
             message: 'Invalid token.',
         });
@@ -49,7 +49,7 @@ async function authAppMiddleware(req, res, next) {
     const token = authHeader && authHeader.replace('Bearer ', '');
 
     if (!token) {
-        return res.status(401).json({
+        return res.status(200).json({
             status: false,
             message: 'Access denied. No token provided.',
         });
@@ -60,7 +60,7 @@ async function authAppMiddleware(req, res, next) {
         Users.findOne({ user_id: decoded.user_id, token: token })
             .then(user => {
                 if (!user) {
-                    return res.status(401).json({
+                    return res.status(200).json({
                         status: false,
                         message: 'Invalid token.',
                     });
@@ -71,13 +71,13 @@ async function authAppMiddleware(req, res, next) {
                 next(); // Proceed to the next middleware or route handler
             })
             .catch(err => {
-                res.status(500).json({
+                res.status(200).json({
                     status: false,
                     message: 'Internal server error.',
                 });
             });
     } catch (error) {
-        res.status(400).json({
+        res.status(200).json({
             status: false,
             message: 'Invalid token.',
         });

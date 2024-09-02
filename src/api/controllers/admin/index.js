@@ -16,6 +16,7 @@ const PaperSizes = require("../../models/common/paper-sizes");
 const RiderRadius = require("../../models/common/rider-radius");
 const PromoCodes = require("../../models/common/promo-codes");
 const Extensions = require("../../models/common/extensions");
+const Semesters = require("../../models/common/semesters");
 
 const login = async (req, res) => {
   try {
@@ -432,6 +433,96 @@ const fetchSubjectList = async (req, res) => {
   }
 };
 
+const createSemester = async (req, res) => {
+  try {
+    const { user_id, semester_name, department_id } = req.body;
+    const validation = validatorMethod(
+      { user_id, semester_name, department_id },
+      res
+    );
+
+    if (validation) {
+      const created = await Semesters.create({
+        user_id,
+        semester_name,
+        department_id,
+      });
+      if (created) {
+        res.status(200).json({
+          status: true,
+          message: "Semester create successfully.",
+          data: created,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const editSemester = async (req, res) => {
+  try {
+    const { semester_id, semester_name } = req.body;
+    const validation = validatorMethod({ semester_id }, res);
+
+    if (validation) {
+      // Update the document by ID
+      const updated = await Semesters.findOne({ semester_id });
+      updated.semester_name = semester_name || updated.semester_name;
+      await updated.save();
+      res.status(200).json({
+        status: true,
+        message: "Semester update successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const deleteSemester = async (req, res) => {
+  try {
+    const { semester_id } = req.body;
+    const validation = validatorMethod({ semester_id }, res);
+    if (validation) {
+      const deleted = await Semesters.findOneAndDelete({ semester_id });
+      res.status(200).json({
+        status: true,
+        message: "Semester delete successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchSemesterList = async (req, res) => {
+  try {
+    const { department_id } = req.body;
+    const validation = validatorMethod({ department_id }, res);
+    if (validation) {
+      const find = await Semesters.find({ department_id });
+      res.status(200).json({
+        status: true,
+        message: "Semester fetch successfully.",
+        data: find,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 const createDeliveryCharges = async (req, res) => {
   try {
     const { user_id, delivery_charges } = req.body;
@@ -666,7 +757,8 @@ const createPromoCode = async (req, res) => {
 
 const editPromoCode = async (req, res) => {
   try {
-    const { promo_code_id, start_date, end_date, promo_code, discount } = req.body;
+    const { promo_code_id, start_date, end_date, promo_code, discount } =
+      req.body;
     const validation = validatorMethod({ promo_code_id }, res);
 
     if (validation) {
@@ -847,4 +939,8 @@ module.exports = {
   editExtension,
   deleteExtension,
   fetchExtensionList,
+  createSemester,
+  editSemester,
+  deleteSemester,
+  fetchSemesterList,
 };

@@ -40,6 +40,10 @@ const {
   editExtension,
   deleteExtension,
   fetchExtensionList,
+  createSemester,
+  editSemester,
+  deleteSemester,
+  fetchSemesterList,
 } = require("../controllers/admin");
 
 // Import middleware
@@ -164,17 +168,23 @@ router.post(
   createExtension
 );
 router.post("/edit_extension", authAdminMiddleware, fileUpload, editExtension);
-router.post(
-  "/delete_extension",
-  authAdminMiddleware,
-  upload,
-  deleteExtension
-);
+router.post("/delete_extension", authAdminMiddleware, upload, deleteExtension);
 router.post(
   "/fetch_extension_list",
   authAdminMiddleware,
   upload,
   fetchExtensionList
+);
+
+// semester routes with authentication middleware
+router.post("/create_semester", authAdminMiddleware, upload, createSemester);
+router.post("/edit_semester", authAdminMiddleware, upload, editSemester);
+router.post("/delete_semester", authAdminMiddleware, upload, deleteSemester);
+router.post(
+  "/fetch_semester_list",
+  authAdminMiddleware,
+  upload,
+  fetchSemesterList
 );
 
 module.exports = router;
