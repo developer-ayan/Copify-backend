@@ -17,6 +17,9 @@ const RiderRadius = require("../../models/common/rider-radius");
 const PromoCodes = require("../../models/common/promo-codes");
 const Extensions = require("../../models/common/extensions");
 const Semesters = require("../../models/common/semesters");
+const PointIntoPhp = require("../../models/common/point-into-php");
+const SubscriptionPlan = require("../../models/common/subscription-plans");
+const Users = require("../../models/app/user");
 
 const login = async (req, res) => {
   try {
@@ -24,7 +27,7 @@ const login = async (req, res) => {
     const validation = validatorMethod({ email, password }, res);
 
     if (validation) {
-      const find = await AdminUsers.findOne({ email });
+      const find = await Users.findOne({ email, role_id: { $in: [1, 2] } });
 
       if (!find) {
         return res.status(200).json({
@@ -65,10 +68,10 @@ const login = async (req, res) => {
 
 const register = async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, role_id } = req.body;
     const validation = validatorMethod({ email, name, password }, res);
     if (validation) {
-      const find = await AdminUsers.findOne({ email });
+      const find = await Users.findOne({ email });
       if (find) {
         res.status(200).json({
           status: false,
@@ -76,10 +79,11 @@ const register = async (req, res) => {
             "An account with this email address is already registered. Please use a different email address to register a new account.",
         });
       } else {
-        const created = await AdminUsers.create({
+        const created = await Users.create({
           email,
           password,
           name,
+          role_id
         });
         if (created) {
           const token = await jwt.sign(
@@ -904,6 +908,181 @@ const fetchExtensionList = async (req, res) => {
   }
 };
 
+const createPointIntoPhp = async (req, res) => {
+  try {
+    const { user_id, points, php } = req.body;
+    const validation = validatorMethod(
+      {
+        user_id,
+        points,
+        php
+      },
+      res
+    );
+    if (validation) {
+      const created = await PointIntoPhp.create({
+        user_id,
+        points,
+        php
+      });
+      if (created) {
+        res.status(200).json({
+          status: true,
+          message: "Point into PHP set successfully.",
+          data: created,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const editPointIntoPhp = async (req, res) => {
+  try {
+    const { point_into_php_id, points, php } = req.body;
+    const validation = validatorMethod(
+      {
+        point_into_php_id,
+      },
+      res
+    );
+
+    if (validation) {
+      // Update the document by ID
+      const updated = await PointIntoPhp.findOne({ point_into_php_id });
+      updated.points = points || updated.points;
+      updated.php = php || updated.php;
+      await updated.save();
+      res.status(200).json({
+        status: true,
+        message: "Point into PHP update successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchPointIntoPhp = async (req, res) => {
+  try {
+    const find = await PointIntoPhp.find({});
+    res.status(200).json({
+      status: true,
+      message: "Point into PHP fetch successfully.",
+      data: find,
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const createSubscriptionPlan = async (req, res) => {
+  try {
+    const { user_id, price, month } = req.body;
+    const validation = validatorMethod(
+      {
+        user_id,
+        price,
+        month
+      },
+      res
+    );
+    if (validation) {
+      const created = await SubscriptionPlan.create({
+        user_id,
+        price,
+        month
+      });
+      if (created) {
+        res.status(200).json({
+          status: true,
+          message: "Subscription plan create successfully.",
+          data: created,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const editSubscriptionPlan = async (req, res) => {
+  try {
+    const { subsrciption_plan_id, price, month } = req.body;
+    const validation = validatorMethod(
+      {
+        subsrciption_plan_id,
+      },
+      res
+    );
+
+    if (validation) {
+      // Update the document by ID
+      const updated = await SubscriptionPlan.findOne({ subsrciption_plan_id });
+      updated.price = price || updated.price;
+      updated.month = month || updated.month;
+      await updated.save();
+      res.status(200).json({
+        status: true,
+        message: "Subscription plan update successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const deleteSubscriptionPlan = async (req, res) => {
+  try {
+    const { subsrciption_plan_id } = req.body;
+    const validation = validatorMethod({ subsrciption_plan_id }, res);
+    if (validation) {
+      const deleted = await SubscriptionPlan.findOneAndDelete({ subsrciption_plan_id });
+      res.status(200).json({
+        status: true,
+        message: "Subscription plan delete successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+
+const fetchSubscriptionPlan = async (req, res) => {
+  try {
+    const find = await SubscriptionPlan.find({});
+    res.status(200).json({
+      status: true,
+      message: "Subscription plan fetch successfully.",
+      data: find,
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 module.exports = {
   login,
   register,
@@ -943,4 +1122,11 @@ module.exports = {
   editSemester,
   deleteSemester,
   fetchSemesterList,
+  createPointIntoPhp,
+  editPointIntoPhp,
+  fetchPointIntoPhp,
+  createSubscriptionPlan,
+  editSubscriptionPlan,
+  deleteSubscriptionPlan,
+  fetchSubscriptionPlan
 };

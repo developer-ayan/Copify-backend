@@ -17,7 +17,7 @@ async function authAdminMiddleware(req, res, next) {
 
     try {
         const decoded = jwt.verify(token, secret_key);
-        AdminUsers.findOne({ user_id: decoded.user_id, token: token })
+        Users.findOne({ user_id: decoded.user_id, token: token })
             .then(user => {
                 if (!user) {
                     return res.status(200).json({

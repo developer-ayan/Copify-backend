@@ -44,6 +44,13 @@ const {
   editSemester,
   deleteSemester,
   fetchSemesterList,
+  createPointIntoPhp,
+  editPointIntoPhp,
+  fetchPointIntoPhp,
+  createSubscriptionPlan,
+  editSubscriptionPlan,
+  deleteSubscriptionPlan,
+  fetchSubscriptionPlan
 } = require("../controllers/admin");
 
 // Import middleware
@@ -184,7 +191,41 @@ router.post(
   "/fetch_semester_list",
   authAdminMiddleware,
   upload,
-  fetchSemesterList
+  fetchSemesterList)
+// point into php routes with authentication middleware
+router.post(
+  "/create_point_into_php",
+  authAdminMiddleware,
+  fileUpload,
+  createPointIntoPhp
+);
+router.post("/edit_point_into_php", authAdminMiddleware, fileUpload, editPointIntoPhp);
+router.post(
+  "/fetch_point_into_php_list",
+  authAdminMiddleware,
+  upload,
+  fetchPointIntoPhp
+);
+
+// subscription plans routes with authentication middleware
+router.post(
+  "/create_subscription_plan",
+  authAdminMiddleware,
+  fileUpload,
+  createSubscriptionPlan
+);
+router.post("/edit_subscription_plan", authAdminMiddleware, fileUpload, editSubscriptionPlan);
+router.post(
+  "/delete_subscription_plan",
+  authAdminMiddleware,
+  upload,
+  deleteSubscriptionPlan
+);
+router.post(
+  "/fetch_subscription_plan_list",
+  authAdminMiddleware,
+  upload,
+  fetchSubscriptionPlan
 );
 
 module.exports = router;
