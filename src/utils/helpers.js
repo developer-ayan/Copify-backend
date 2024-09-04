@@ -2,7 +2,7 @@ var fs = require("fs");
 const OneSignal = require("onesignal-node");
 const path = require("path");
 // const Notification = require("../api/models/common/notification");
-// const Users = require('../../models/app/user');
+const Users = require("../api/models/app/user");
 const nodemailer = require("nodemailer");
 const uploads = path.join(__dirname, "../uploads/");
 
@@ -132,7 +132,6 @@ function validatorMethod(args, res) {
   }
 
   if (error) {
-    
     // Respond with status code 200 and error messages if there are validation errors
     res.status(200).json({
       success: false,
@@ -167,5 +166,5 @@ module.exports = {
   validatorMethod,
   catchErrorValidation,
   check_extension,
-  modifiedArray
+  modifiedArray,
 };

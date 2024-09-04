@@ -26,9 +26,9 @@ const subjectSchema = new mongoose.Schema(
             required: [true, "subject description is required"],
             trim: true,
         },
-        semester: {
+        semester_id: {
             type: String,
-            required: [true, "semester is required"],
+            required: [true, "semester id is required"],
             trim: true,
         },
         year: {

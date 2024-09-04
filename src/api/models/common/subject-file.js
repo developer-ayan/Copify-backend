@@ -33,9 +33,9 @@ const subjectFileSchema = new mongoose.Schema(
             required: [true, "page number is required"],
             trim: true,
         },
-        paper_size: {
+        paper_size_id: {
             type: String,
-            required: [true, "page number is required"],
+            required: [true, "page size id is required"],
             trim: true,
         },
         color_code_id: {
@@ -53,6 +53,14 @@ const subjectFileSchema = new mongoose.Schema(
             required: [true, "publish or save is required"],
             trim: true,
         },
+        time: {
+            type: String,
+            trim: true,
+        }, 
+        date: {
+            type: String,
+            trim: true,
+        }, 
     },
     {
         timestamps: { createdAt: "created_at", updatedAt: "updated_at" },

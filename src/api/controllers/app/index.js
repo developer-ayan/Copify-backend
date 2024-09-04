@@ -4,6 +4,7 @@ const {
   catchErrorValidation,
   delete_file,
   modifiedArray,
+  sendNotification,
 } = require("../../../utils/helpers");
 const { secret_key } = require("../../../utils/static-values");
 const jwt = require("jsonwebtoken");
@@ -135,10 +136,15 @@ const register = async (req, res) => {
 
 const teacherDashboard = async (req, res) => {
   try {
-    const { user_id } = req.body;
-    const validation = validatorMethod({ user_id }, res);
+    const { institute_id } = req.body;
+    const validation = validatorMethod({ institute_id }, res);
     if (validation) {
       const find = await Department.aggregate([
+        {
+          $match: {
+            institute_id: 1, // Match the department based on institute_id
+          },
+        },
         {
           $addFields: {
             // Convert department_id to string for comparison
@@ -180,7 +186,7 @@ const createTeacherPage = async (req, res) => {
       section,
       subject_code,
       subject_description,
-      semester,
+      semester_id,
       year,
       no_of_enrolled,
     } = req.body;
@@ -191,7 +197,7 @@ const createTeacherPage = async (req, res) => {
         section,
         subject_code,
         subject_description,
-        semester,
+        semester_id,
         year,
         no_of_enrolled,
       },
@@ -204,7 +210,7 @@ const createTeacherPage = async (req, res) => {
         section,
         subject_code,
         subject_description,
-        semester,
+        semester_id,
         year,
         no_of_enrolled,
       });
@@ -227,6 +233,15 @@ const createTeacherPage = async (req, res) => {
 };
 
 const createSubjectFile = async (req, res) => {
+  const sendNotificationTitle = (id, title, date, time) => {
+    if (id == "1") {
+      return `${title} has been uploaded to the Copify app.`;
+    } else if (id == "2") {
+      return `${title} has been uploaded to the Copify app. However, it is a personal file and will only be visible to you`;
+    } else if (id == "3") {
+      return `We will publish your file on Copify at this date ${date} and time ${time}.`;
+    }
+  };
   try {
     const {
       user_id,
@@ -234,10 +249,12 @@ const createSubjectFile = async (req, res) => {
       title,
       description,
       page_number,
-      paper_size,
+      paper_size_id,
       color_code_id,
       total_price,
       publish_or_save,
+      time,
+      date,
     } = req.body;
     const validation = validatorMethod(
       {
@@ -247,7 +264,7 @@ const createSubjectFile = async (req, res) => {
         title,
         description,
         page_number,
-        paper_size,
+        paper_size_id,
         color_code_id,
         total_price,
         publish_or_save,
@@ -262,12 +279,19 @@ const createSubjectFile = async (req, res) => {
         title,
         description,
         page_number,
-        paper_size,
+        paper_size_id,
         color_code_id,
         total_price,
         publish_or_save,
+        time,
+        date,
       });
       if (created) {
+        sendNotification(
+          user_id,
+          "File status",
+          sendNotificationTitle(publish_or_save, title, date, time)
+        );
         res.status(200).json({
           status: true,
           message: "Subject file create successfully.",
