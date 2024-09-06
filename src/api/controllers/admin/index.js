@@ -3,6 +3,7 @@ const {
   validatorMethod,
   catchErrorValidation,
   delete_file,
+  generateClaimCode,
 } = require("../../../utils/helpers");
 const { secret_key } = require("../../../utils/static-values");
 const AdminUsers = require("../../models/admin/admin-users");
@@ -43,6 +44,11 @@ const login = async (req, res) => {
         return res.status(200).json({
           status: false,
           message: "Invalid email or password.",
+        });
+      } else if (find?.account_status == 'inActive') {
+        return res.status(200).json({
+          status: false,
+          message: "Your account has been in Active. Please contact the admin for assistance.",
         });
       } else {
         const token = await jwt.sign(
@@ -236,6 +242,64 @@ const fetchInstituteList = async (req, res) => {
       message: "Institute fetch successfully.",
       data: find,
     });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchInstituteTeacherAndStudent = async (req, res) => {
+  try {
+    const { institute_id, role_id } = req.body;
+    const validation = validatorMethod({ institute_id, role_id }, res);
+    if (validation) {
+      const find = await Users.find({ institute_id, role_id }).lean(); // Convert to plain objects to modify safely
+
+      if (find) {
+        // Modify array by adding role_type based on role_id
+        const modifiedArray = find.map((item) => ({
+          ...item,
+          role_type: item.role_id === '3' ? 'Student' : 'Teacher',
+          claim_code: generateClaimCode(item.user_id)
+        }));
+
+        return res.status(200).json({
+          status: true,
+          message: "Institute users fetched successfully.",
+          data: modifiedArray,
+        });
+      } else {
+        return res.status(200).json({
+          status: false,
+          message: "No record found!",
+        });
+      }
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+
+const editStatusTeacherAndStudent = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+
+    if (validation) {
+      const updated = await Users.findOne({ user_id });
+      updated.account_status = updated.account_status == 'active' ? 'inActive' : 'active';
+      updated.token = '';
+      await updated.save();
+      res.status(200).json({
+        status: true,
+        message: "Status updated successfully. If set to active or disable, the user will be logged out from the app."
+      });
+    }
   } catch (error) {
     catchErrorValidation(error, res);
   }
@@ -1090,6 +1154,8 @@ module.exports = {
   createInstitute,
   editInstitute,
   fetchInstituteDetail,
+  fetchInstituteTeacherAndStudent,
+  editStatusTeacherAndStudent,
   SearchInstitute,
   deleteInstitute,
   createDepartment,

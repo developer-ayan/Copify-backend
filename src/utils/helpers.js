@@ -8,12 +8,12 @@ const uploads = path.join(__dirname, "../uploads/");
 
 const delete_file = async (path, fileName) => {
   console.log(uploads + fileName);
-  fs.unlink(uploads + fileName, function (err) {});
+  fs.unlink(uploads + fileName, function (err) { });
 };
 
 const check_extension = async (fileName) => {
   console.log(uploads + fileName);
-  fs.unlink(uploads + fileName, function (err) {});
+  fs.unlink(uploads + fileName, function (err) { });
 };
 
 const modifiedArray = async (id, value, arr) => {
@@ -125,7 +125,7 @@ function validatorMethod(args, res) {
 
   // Iterate over each field in the data and check if it's empty
   for (const [field, value] of Object.entries(data)) {
-    if (!value) {
+    if (value == undefined || value == null || value == '' && !value) {
       error = `${field} is required`;
       break;
     }
@@ -159,6 +159,12 @@ const catchErrorValidation = async (error, res) => {
   }
 };
 
+const generateClaimCode = (number) => {
+  const prefix = "CDK";
+  const paddedNumber = String(number).padStart(7, '0');
+  return prefix + paddedNumber;
+}
+
 module.exports = {
   delete_file,
   sendNotification,
@@ -167,4 +173,5 @@ module.exports = {
   catchErrorValidation,
   check_extension,
   modifiedArray,
+  generateClaimCode
 };

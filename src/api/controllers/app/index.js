@@ -63,6 +63,11 @@ const login = async (req, res) => {
           status: false,
           message: "Invalid email or password.",
         });
+      } else if (find?.account_status == 'inActive') {
+        return res.status(200).json({
+          status: false,
+          message: "Your account has been in-active. Please contact the admin for assistance.",
+        });
       } else {
         const token = await jwt.sign(
           { user_id: find.user_id, email: find.email },

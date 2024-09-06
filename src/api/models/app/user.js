@@ -43,6 +43,10 @@ const userSchema = new mongoose.Schema(
         token: {
             type: String,
         },
+        account_status: {
+            type: String,
+            default: "active"
+        },
     },
     {
         timestamps: {

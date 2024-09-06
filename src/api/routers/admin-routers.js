@@ -11,6 +11,8 @@ const {
   createInstitute,
   editInstitute,
   fetchInstituteDetail,
+  fetchInstituteTeacherAndStudent,
+  editStatusTeacherAndStudent,
   deleteInstitute,
   fetchInstituteList,
   createDepartment,
@@ -77,6 +79,8 @@ router.post(
   upload,
   fetchInstituteList
 );
+router.post("/fetch_institute_teacher_and_student_list", authAdminMiddleware, upload, fetchInstituteTeacherAndStudent);
+router.post("/edit_status_teacher_and_student", authAdminMiddleware, upload, editStatusTeacherAndStudent);
 
 // department routes with authentication middleware
 router.post(
