@@ -14,6 +14,7 @@ const Users = require("../../models/app/user");
 const Subject = require("../../models/app/createPage");
 const Department = require("../../models/common/department");
 const SubjectFiles = require("../../models/common/subject-file");
+const Semesters = require("../../models/common/semesters");
 
 const fetchInstituteList = async (req, res) => {
   try {
@@ -161,7 +162,7 @@ const teacherDashboard = async (req, res) => {
             from: "subjects", // The collection to join with
             localField: "department_id_str", // Field from Department, converted to string
             foreignField: "department_id", // Field from Subjects, assumed to be string
-            as: "subjects", // The name of the new array field to add to the result
+            as: "semester", // The name of the new array field to add to the result
           },
         },
       ]);
@@ -177,6 +178,60 @@ const teacherDashboard = async (req, res) => {
           message: "Something went wrong!",
         });
       }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchDepartmentList = async (req, res) => {
+  try {
+    const { institute_id } = req.body;
+    const validation = validatorMethod({ institute_id }, res);
+    if (validation) {
+      const find = await Department.find({ institute_id });
+      const modfiedArr = await modifiedArray(
+        "department_id",
+        "department_name",
+        find
+      );
+      res.status(200).json({
+        status: true,
+        message: "Department fetch successfully.",
+        data: modfiedArr,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchSemesterList = async (req, res) => {
+  try {
+    const { department_id } = req.body;
+    const validation = validatorMethod({ department_id }, res);
+    if (validation) {
+      const find = await Semesters.find({ department_id });
+      const modfiedArr = await modifiedArray(
+        "semester_id",
+        "semester_name",
+        find
+      );
+      res.status(200).json({
+        status: true,
+        message: "Semester fetch successfully.",
+        data: modfiedArr,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
     }
   } catch (error) {
     catchErrorValidation(error, res);
@@ -345,6 +400,8 @@ module.exports = {
   login,
   register,
   fetchInstituteList,
+  fetchDepartmentList,
+  fetchSemesterList,
   createTeacherPage,
   teacherDashboard,
   createSubjectFile,

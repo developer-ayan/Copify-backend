@@ -7,6 +7,8 @@ const {
   fetchInstituteList,
   login,
   register,
+  fetchDepartmentList,
+  fetchSemesterList,
   createTeacherPage,
   teacherDashboard,
   createSubjectFile,
@@ -29,5 +31,7 @@ router.post("/create_teacher_page", authAppMiddleware, upload, createTeacherPage
 router.post("/teacher_dashboard", authAppMiddleware, upload, teacherDashboard);
 router.post("/create_subject_file", authAppMiddleware, fileUpload, createSubjectFile);
 router.post("/teacher_subject_list", authAppMiddleware, fileUpload, teacherSubjectList);
+router.post("/fetch_department_list", authAppMiddleware, fileUpload, fetchDepartmentList);
+router.post("/fetch_semester_list", authAppMiddleware, fileUpload, fetchSemesterList);
 
 module.exports = router;
