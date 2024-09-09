@@ -125,7 +125,7 @@ function validatorMethod(args, res) {
 
   // Iterate over each field in the data and check if it's empty
   for (const [field, value] of Object.entries(data)) {
-    if (value == undefined || value == null || value == '' && !value) {
+    if (value == 'undefined' || value == null || value == '' && !value) {
       error = `${field} is required`;
       break;
     }
