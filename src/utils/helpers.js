@@ -164,6 +164,10 @@ const generateClaimCode = (number) => {
   const paddedNumber = String(number).padStart(7, '0');
   return prefix + paddedNumber;
 }
+const getValueById = (arr, id) => {
+  const getValue = arr.filter((item, index) => item.id == id)?.[0]?.value || ''
+  return getValue
+}
 
 module.exports = {
   delete_file,
@@ -173,5 +177,6 @@ module.exports = {
   catchErrorValidation,
   check_extension,
   modifiedArray,
-  generateClaimCode
+  generateClaimCode,
+  getValueById
 };

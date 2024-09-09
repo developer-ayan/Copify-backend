@@ -11,4 +11,19 @@ const secret_key =
 const AWS_ACCESS_KEY_ID = 'test'
 const AWS_SECRET_ACCESS_KEY = 'test'
 
-module.exports = { created_at, database_name, secret_key, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY };
+const SEMESTERS = [
+  {
+    id: 1,
+    value: 'First'
+  },
+  {
+    id: 2,
+    value: 'Second'
+  },
+  {
+    id: 3,
+    value: 'Summer'
+  },
+]
+
+module.exports = { created_at, database_name, secret_key, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, SEMESTERS };

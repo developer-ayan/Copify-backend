@@ -5,8 +5,9 @@ const {
   delete_file,
   modifiedArray,
   sendNotification,
+  getValueById,
 } = require("../../../utils/helpers");
-const { secret_key } = require("../../../utils/static-values");
+const { secret_key, SEMESTERS } = require("../../../utils/static-values");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const Institute = require("../../models/common/institute");
@@ -148,12 +149,11 @@ const teacherDashboard = async (req, res) => {
       const find = await Department.aggregate([
         {
           $match: {
-            institute_id: 1, // Match the department based on institute_id
+            institute_id: Number(institute_id), // Match the department based on institute_id
           },
         },
         {
           $addFields: {
-            // Convert department_id to string for comparison
             department_id_str: { $toString: "$department_id" },
           },
         },
@@ -165,12 +165,25 @@ const teacherDashboard = async (req, res) => {
             as: "semester", // The name of the new array field to add to the result
           },
         },
-      ]);
+      ])
+
       if (find) {
+        const modifiedArray = await find.map((item, index) => {
+          return {
+            ...item,
+            semester: item.semester.map((e) => {
+              return {
+                ...e,
+                semester_name: getValueById(SEMESTERS, Number(e.semester_id))
+              };
+            })
+          };
+        });
+
         res.status(200).json({
           status: true,
-          message: "Department fetch successfully.",
-          data: find,
+          message: "Department fetched successfully.",
+          data: modifiedArray,
         });
       } else {
         res.status(200).json({
