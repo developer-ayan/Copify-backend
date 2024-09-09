@@ -179,7 +179,6 @@ const teacherDashboard = async (req, res) => {
             })
           };
         });
-
         res.status(200).json({
           status: true,
           message: "Department fetched successfully.",
