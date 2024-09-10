@@ -21,6 +21,8 @@ const {
   fetchAddressList,
   editDefaultAddress,
   EditRiderCoordinates,
+  fetchPaperSizeList,
+  fetchRiderDropDown
 } = require("../controllers/app");
 
 // Import middleware
@@ -102,6 +104,8 @@ router.post(
   upload,
   editDefaultAddress
 );
+router.post("/fetch_paper_size_list", authAppMiddleware, upload, fetchPaperSizeList);
+router.post("/fetch_riders_list", authAppMiddleware, upload, fetchRiderDropDown);
 
 // rider
 router.post(

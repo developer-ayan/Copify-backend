@@ -21,6 +21,8 @@ const Subscribes = require("../../models/app/subscribe");
 const Notification = require("../../models/common/notification");
 const DeliveryCharges = require("../../models/common/delivery-charges");
 const Address = require("../../models/common/address");
+const PaperSizes = require("../../models/common/paper-sizes");
+const RiderRadius = require("../../models/common/rider-radius");
 
 const fetchInstituteList = async (req, res) => {
   try {
@@ -35,6 +37,44 @@ const fetchInstituteList = async (req, res) => {
         status: true,
         message: "Institute fetch successfully.",
         data: modfiedArr,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchRiderDropDown = async (req, res) => {
+  try {
+    const { latitude, longitude } = req.body;
+    const validation = validatorMethod({ latitude, longitude }, res);
+    if (validation) {
+      // Convert kilometers to radians (5 km / Earth's radius in kilometers)
+      const riderRadius = await RiderRadius.findOne({})
+      const radiusInKm = parseFloat(riderRadius?.rider_radius) || 5;
+      const earthRadiusInKm = 6378.1;
+      const radiusInRadians = radiusInKm / earthRadiusInKm;
+
+      // Find riders within 5 km radius
+      const find = await Users.find({
+        role_id: '3',
+        rider_status_for_student: 'active',
+        location: {
+          $geoWithin: {
+            $centerSphere: [[longitude, latitude], radiusInRadians],
+          },
+        },
+      });
+
+      res.status(200).json({
+        status: true,
+        message: "Riders fetched successfully.",
+        data: find,
       });
     } else {
       res.status(200).json({
@@ -752,6 +792,24 @@ const editDefaultAddress = async (req, res) => {
   }
 };
 
+const fetchPaperSizeList = async (req, res) => {
+  try {
+    const find = await PaperSizes.find({});
+    const modfiedArr = await modifiedArray(
+      "paper_size_id",
+      "paper_size",
+      find
+    );
+    res.status(200).json({
+      status: true,
+      message: "Paper size fetch successfully.",
+      data: modfiedArr,
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 module.exports = {
   // teacher
   login,
@@ -773,6 +831,8 @@ module.exports = {
   createAddress,
   fetchAddressList,
   editDefaultAddress,
+  fetchPaperSizeList,
+  fetchRiderDropDown,
   //rider
   EditRiderCoordinates,
 };
