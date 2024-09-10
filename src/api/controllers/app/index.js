@@ -6,6 +6,7 @@ const {
   modifiedArray,
   sendNotification,
   getValueById,
+  generateClaimCode,
 } = require("../../../utils/helpers");
 const { secret_key, SEMESTERS } = require("../../../utils/static-values");
 const jwt = require("jsonwebtoken");
@@ -16,6 +17,10 @@ const Subject = require("../../models/app/createPage");
 const Department = require("../../models/common/department");
 const SubjectFiles = require("../../models/common/subject-file");
 const Semesters = require("../../models/common/semesters");
+const Subscribes = require("../../models/app/subscribe");
+const Notification = require("../../models/common/notification");
+const DeliveryCharges = require("../../models/common/delivery-charges");
+const Address = require("../../models/common/address");
 
 const fetchInstituteList = async (req, res) => {
   try {
@@ -65,10 +70,11 @@ const login = async (req, res) => {
           status: false,
           message: "Invalid email or password.",
         });
-      } else if (find?.account_status == 'inActive') {
+      } else if (find?.account_status == "inActive") {
         return res.status(200).json({
           status: false,
-          message: "Your account has been in-active. Please contact the admin for assistance.",
+          message:
+            "Your account has been in-active. Please contact the admin for assistance.",
         });
       } else {
         const token = await jwt.sign(
@@ -94,9 +100,10 @@ const login = async (req, res) => {
 
 const register = async (req, res) => {
   try {
-    const { email, password, name, role_id, institute_id } = req.body;
+    const { email, password, name, contact_number, role_id, institute_id } =
+      req.body;
     const validation = validatorMethod(
-      { email, name, role_id, institute_id, password },
+      { email, name, role_id, contact_number, institute_id, password },
       res
     );
     if (validation) {
@@ -112,6 +119,7 @@ const register = async (req, res) => {
           email,
           password,
           name,
+          contact_number,
           role_id,
           institute_id,
         });
@@ -135,6 +143,26 @@ const register = async (req, res) => {
           });
         }
       }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const EditRiderCoordinates = async (req, res) => {
+  try {
+    const { user_id, latitude, longitude } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+    if (validation) {
+      const updated = await Users.findOne({ user_id });
+      updated.location.coordinates =
+        [parseFloat(longitude), parseFloat(latitude)] ||
+        updated.location.coordinates;
+      await updated.save();
+      res.status(200).json({
+        status: true,
+        message: "Rider coordinates update successfully.",
+      });
     }
   } catch (error) {
     catchErrorValidation(error, res);
@@ -165,7 +193,7 @@ const teacherDashboard = async (req, res) => {
             as: "semester", // The name of the new array field to add to the result
           },
         },
-      ])
+      ]);
 
       if (find) {
         const modifiedArray = await find.map((item, index) => {
@@ -174,9 +202,9 @@ const teacherDashboard = async (req, res) => {
             semester: item.semester.map((e) => {
               return {
                 ...e,
-                semester_name: getValueById(SEMESTERS, Number(e.semester_id))
+                semester_name: getValueById(SEMESTERS, Number(e.semester_id)),
               };
-            })
+            }),
           };
         });
         res.status(200).json({
@@ -286,6 +314,11 @@ const createTeacherPage = async (req, res) => {
         year,
         no_of_enrolled,
       });
+      sendNotification(
+        user_id,
+        "Page alert",
+        `You have created the subject page ${subject_description}.`
+      );
       if (created) {
         res.status(200).json({
           status: true,
@@ -298,6 +331,86 @@ const createTeacherPage = async (req, res) => {
           message: "Something went wrong!",
         });
       }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchSubscriberList = async (req, res) => {
+  try {
+    const { teacher_id } = req.body;
+    const validation = validatorMethod({ teacher_id }, res);
+    if (validation) {
+      const find = await Subscribes.aggregate([
+        {
+          $match: {
+            teacher_id: Number(teacher_id), // Match documents based on teacher_id
+          },
+        },
+        {
+          $lookup: {
+            from: "app_users", // Collection to join with
+            localField: "user_id", // Field from Subscribes
+            foreignField: "user_id", // Field from app_users
+            as: "students", // New array field to add
+          },
+        },
+        {
+          $unwind: {
+            path: "$students", // Unwind the semester array
+            preserveNullAndEmptyArrays: true, // Keep documents with no matches
+          },
+        },
+        {
+          $replaceRoot: {
+            newRoot: "$students", // Replace root with semester document
+          },
+        },
+        {
+          $project: {
+            _id: 1, // Include _id
+            name: 1, // Include name
+            email: 1, // Include email
+            role_id: 1, // Include role_id
+            institute_id: 1, // Include institute_id
+            account_status: 1, // Include account_status
+            created_at: 1, // Include created_at
+            updated_at: 1, // Include updated_at
+            user_id: 1, // Include user_id
+          },
+        },
+        {
+          $group: {
+            _id: null, // Group all documents into a single document
+            data: { $push: "$$ROOT" }, // Push each document into a data array
+          },
+        },
+        {
+          $project: {
+            _id: 0, // Exclude _id
+            data: 1, // Include the data array
+          },
+        },
+      ]);
+
+      const modifiedArray = await (find[0]?.data || []).map((item, index) => {
+        return {
+          ...item,
+          user_id: generateClaimCode(item.user_id),
+        };
+      });
+
+      res.status(200).json({
+        status: true,
+        message: "Subscribers fetched successfully.",
+        data: modifiedArray, // Safeguard against empty result
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
     }
   } catch (error) {
     catchErrorValidation(error, res);
@@ -408,7 +521,239 @@ const teacherSubjectList = async (req, res) => {
   }
 };
 
+// Common controllers with authentication middleware
+
+const notificationList = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+    if (validation) {
+      const find = await Notification.find({ user_id });
+      if (find) {
+        res.status(200).json({
+          status: true,
+          message: "Notification fetch successfully.",
+          data: find,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+// Student controllers with authentication middleware
+
+const createSubscribeSubjectForStudent = async (req, res) => {
+  try {
+    const { teacher_id, user_id, subject_id } = req.body;
+    const validation = validatorMethod(
+      { teacher_id, user_id, subject_id },
+      res
+    );
+    if (validation) {
+      // Check if a subscription already exists
+      const existingSubscription = await Subscribes.findOne({
+        teacher_id,
+        user_id,
+        subject_id,
+      });
+
+      if (existingSubscription) {
+        // If subscription exists, delete it
+        await Subscribes.deleteOne({
+          teacher_id,
+          user_id,
+          subject_id,
+        });
+
+        res.status(200).json({
+          status: true,
+          message: `Subject unsubscribed successfully.`,
+        });
+
+        sendNotification(
+          user_id,
+          "Subscribe alert",
+          `UnSubscribed successfully.`
+        );
+      } else {
+        // If subscription does not exist, create it
+        const created = await Subscribes.create({
+          teacher_id,
+          user_id,
+          subject_id,
+        });
+
+        if (created) {
+          res.status(200).json({
+            status: true,
+            message: "Subscribed successfully.",
+          });
+          sendNotification(
+            user_id,
+            "Subscribe alert",
+            `Subject subscribed successfully.`
+          );
+        } else {
+          res.status(200).json({
+            status: false,
+            message: "Something went wrong!",
+          });
+        }
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchCartSubjectFileList = async (req, res) => {
+  try {
+    const { subject_file_ids } = req.body;
+    const validation = validatorMethod({ subject_file_ids }, res);
+    if (validation) {
+      const find = await SubjectFiles.find({
+        subject_file_id: { $in: JSON.parse(subject_file_ids) },
+      });
+      const fetchDeliveryCharges = await DeliveryCharges.findOne({});
+      const deliveryCharges = fetchDeliveryCharges?.delivery_charges || 0;
+      const totalPriceReduce = await find.reduce(
+        (sum, file) => parseFloat(sum) + parseFloat(file.total_price),
+        0
+      );
+
+      res.status(200).json({
+        status: true,
+        message: "Cart fetch successfully.",
+        data: find,
+        sub_total: totalPriceReduce || 0,
+        delivery_charges: deliveryCharges || 0,
+        total_price: totalPriceReduce + deliveryCharges || 0,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const createAddress = async (req, res) => {
+  try {
+    const { address, postal_code, user_id } = req.body;
+    const validation = validatorMethod({ address, user_id }, res);
+    if (validation) {
+      // Check if a subscription already exists
+      const existing = await Address.findOne({
+        user_id,
+      });
+
+      if (existing) {
+        // If subscription exists, delete it
+        await Address.create({
+          address,
+          default_select: false,
+          postal_code,
+          user_id,
+        });
+
+        res.status(200).json({
+          status: true,
+          message: "Address create successfully.",
+        });
+      } else {
+        // If subscription does not exist, create it
+        const created = await Address.create({
+          address,
+          default_select: true,
+          postal_code,
+          user_id,
+        });
+        if (created) {
+          res.status(200).json({
+            status: true,
+            message: "Address create successfully.",
+          });
+        } else {
+          res.status(200).json({
+            status: false,
+            message: "Something went wrong!",
+          });
+        }
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchAddressList = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+    if (validation) {
+      const find = await Address.find({ user_id });
+      if (find) {
+        res.status(200).json({
+          status: true,
+          message: "Address fetch successfully.",
+          data: find,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const editDefaultAddress = async (req, res) => {
+  try {
+    const { user_id, address_id } = req.body;
+    const validation = validatorMethod({ user_id, address_id }, res);
+    if (!validation) {
+      return;
+    }
+    await Address.updateMany(
+      { user_id: user_id },
+      { $set: { default_select: false } }
+    );
+    const updatedAddress = await Address.findOneAndUpdate(
+      { user_id: user_id, address_id: Number(address_id) },
+      { $set: { default_select: true } },
+      { new: true }
+    );
+    if (updatedAddress) {
+      res.status(200).json({
+        status: true,
+        message: "Address updated successfully.",
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Address not found!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 module.exports = {
+  // teacher
   login,
   register,
   fetchInstituteList,
@@ -418,4 +763,16 @@ module.exports = {
   teacherDashboard,
   createSubjectFile,
   teacherSubjectList,
+  // teacher profile
+  fetchSubscriberList,
+  // student
+  createSubscribeSubjectForStudent,
+  // common
+  notificationList,
+  fetchCartSubjectFileList,
+  createAddress,
+  fetchAddressList,
+  editDefaultAddress,
+  //rider
+  EditRiderCoordinates,
 };

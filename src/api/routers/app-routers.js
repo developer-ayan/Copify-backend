@@ -12,7 +12,15 @@ const {
   createTeacherPage,
   teacherDashboard,
   createSubjectFile,
-  teacherSubjectList
+  teacherSubjectList,
+  createSubscribeSubjectForStudent,
+  fetchSubscriberList,
+  notificationList,
+  fetchCartSubjectFileList,
+  createAddress,
+  fetchAddressList,
+  editDefaultAddress,
+  EditRiderCoordinates,
 } = require("../controllers/app");
 
 // Import middleware
@@ -27,11 +35,80 @@ router.post("/register", upload, register);
 router.post("/fetch_institute_list", upload, fetchInstituteList);
 
 // Teacher routes with authentication middleware
-router.post("/create_teacher_page", authAppMiddleware, upload, createTeacherPage);
+router.post(
+  "/create_teacher_page",
+  authAppMiddleware,
+  upload,
+  createTeacherPage
+);
 router.post("/teacher_dashboard", authAppMiddleware, upload, teacherDashboard);
-router.post("/create_subject_file", authAppMiddleware, fileUpload, createSubjectFile);
-router.post("/teacher_subject_list", authAppMiddleware, fileUpload, teacherSubjectList);
-router.post("/fetch_department_list", authAppMiddleware, fileUpload, fetchDepartmentList);
-router.post("/fetch_semester_list", authAppMiddleware, fileUpload, fetchSemesterList);
+router.post(
+  "/create_subject_file",
+  authAppMiddleware,
+  fileUpload,
+  createSubjectFile
+);
+router.post(
+  "/teacher_subject_list",
+  authAppMiddleware,
+  fileUpload,
+  teacherSubjectList
+);
+router.post(
+  "/fetch_department_list",
+  authAppMiddleware,
+  fileUpload,
+  fetchDepartmentList
+);
+router.post(
+  "/fetch_semester_list",
+  authAppMiddleware,
+  fileUpload,
+  fetchSemesterList
+);
+router.post(
+  "/fetch_subscriber_list",
+  authAppMiddleware,
+  fileUpload,
+  fetchSubscriberList
+);
+
+// Student routes with authentication middleware
+router.post(
+  "/create_subscribe_subject_for_student",
+  authAppMiddleware,
+  upload,
+  createSubscribeSubjectForStudent
+);
+
+// Common routes with authentication middleware
+router.post(
+  "/fetch_notification_list",
+  authAppMiddleware,
+  upload,
+  notificationList
+);
+router.post(
+  "/fetch_cart_subject_file_list",
+  authAppMiddleware,
+  upload,
+  fetchCartSubjectFileList
+);
+router.post("/create_address", authAppMiddleware, upload, createAddress);
+router.post("/fetch_address_list", authAppMiddleware, upload, fetchAddressList);
+router.post(
+  "/edit_default_address",
+  authAppMiddleware,
+  upload,
+  editDefaultAddress
+);
+
+// rider
+router.post(
+  "/edit_rider_coordinates",
+  authAppMiddleware,
+  upload,
+  EditRiderCoordinates
+);
 
 module.exports = router;
