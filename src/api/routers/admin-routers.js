@@ -52,7 +52,11 @@ const {
   createSubscriptionPlan,
   editSubscriptionPlan,
   deleteSubscriptionPlan,
-  fetchSubscriptionPlan
+  fetchSubscriptionPlan,
+  SearchTeacher,
+  fetchTeacherSubjectPage,
+  fetchTeacherSubjectFiles,
+  deleteTeacherSubjectFiles
 } = require("../controllers/admin");
 
 // Import middleware
@@ -230,6 +234,31 @@ router.post(
   authAdminMiddleware,
   upload,
   fetchSubscriptionPlan
+);
+
+// teacher dashboard routes with authentication middleware
+router.post(
+  "/search_teacher",
+  authAdminMiddleware,
+  upload,
+  SearchTeacher
+);
+router.post(
+  "/fetch_teacher_subject_list",
+  upload,
+  fetchTeacherSubjectPage
+);
+router.post(
+  "/fetch_teacher_subject_file_list",
+  authAdminMiddleware,
+  upload,
+  fetchTeacherSubjectFiles
+);
+router.post(
+  "/delete_teacher_subject_file_list",
+  authAdminMiddleware,
+  upload,
+  deleteTeacherSubjectFiles
 );
 
 module.exports = router;

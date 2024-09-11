@@ -11,7 +11,6 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const Institute = require("../../models/common/institute");
 const Department = require("../../models/common/department");
-const Subject = require("../../models/common/subject");
 const DeliveryCharges = require("../../models/common/delivery-charges");
 const PaperSizes = require("../../models/common/paper-sizes");
 const RiderRadius = require("../../models/common/rider-radius");
@@ -21,6 +20,8 @@ const Semesters = require("../../models/common/semesters");
 const PointIntoPhp = require("../../models/common/point-into-php");
 const SubscriptionPlan = require("../../models/common/subscription-plans");
 const Users = require("../../models/app/user");
+const Subject = require("../../models/app/createPage");
+const SubjectFiles = require("../../models/common/subject-file");
 
 const login = async (req, res) => {
   try {
@@ -654,13 +655,16 @@ const fetchDeliveryChargesList = async (req, res) => {
 
 const createPaperSize = async (req, res) => {
   try {
-    const { user_id, paper_size } = req.body;
-    const validation = validatorMethod({ user_id, paper_size }, res);
+    const { user_id, paper_size, black_and_white_paper_size_price, colorful_paper_price } = req.body;
+    const validation = validatorMethod({ user_id, paper_size, black_and_white_paper_size_price, colorful_paper_price }, res);
+
 
     if (validation) {
       const created = await PaperSizes.create({
         user_id,
         paper_size,
+        black_and_white_paper_size_price,
+        colorful_paper_price
       });
       if (created) {
         res.status(200).json({
@@ -682,13 +686,15 @@ const createPaperSize = async (req, res) => {
 
 const editPaperSize = async (req, res) => {
   try {
-    const { paper_size, paper_size_id } = req.body;
-    const validation = validatorMethod({ paper_size, paper_size_id }, res);
+    const { paper_size, paper_size_id, black_and_white_paper_size_price, colorful_paper_price } = req.body;
+    const validation = validatorMethod({ paper_size_id }, res);
 
     if (validation) {
       // Update the document by ID
       const updated = await PaperSizes.findOne({ paper_size_id });
       updated.paper_size = paper_size || updated.paper_size;
+      updated.black_and_white_paper_size_price = black_and_white_paper_size_price || updated.black_and_white_paper_size_price;
+      updated.colorful_paper_price = colorful_paper_price || updated.colorful_paper_price;
       await updated.save();
       res.status(200).json({
         status: true,
@@ -883,7 +889,7 @@ const createExtension = async (req, res) => {
       {
         user_id,
         extension_name,
-        file_upload: req.file ? req.file.filename : null,
+        file_upload: req.file ? req.file.location : null,
       },
       res
     );
@@ -891,7 +897,7 @@ const createExtension = async (req, res) => {
       const created = await Extensions.create({
         user_id,
         extension_name,
-        file_upload: req.file ? req.file.filename : null,
+        file_upload: req.file ? req.file.location : null,
       });
       if (created) {
         res.status(200).json({
@@ -906,7 +912,7 @@ const createExtension = async (req, res) => {
         });
       }
     } else {
-      req.file && delete_file("uploads/", req.file.filename);
+      req.file && delete_file("uploads/", req.file.location);
     }
   } catch (error) {
     catchErrorValidation(error, res);
@@ -1133,6 +1139,69 @@ const deleteSubscriptionPlan = async (req, res) => {
   }
 };
 
+const fetchTeacherSubjectPage = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+    if (validation) {
+      const find = await Subject.find({ user_id });
+      const modfiedArr = await find?.map((item, index) => {
+        return { id: item.subject_id, value: `${item?.subject_description + item.subject_code} - Section ${item.section}` }
+      })
+      res.status(200).json({
+        status: true,
+        message: "Subject fetch successfully.",
+        data: modfiedArr,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchTeacherSubjectFiles = async (req, res) => {
+  try {
+    const { subject_id, files_type } = req.body;
+    const validation = validatorMethod({ subject_id, files_type }, res);
+    if (validation) {
+      const find = await SubjectFiles.find({ subject_id, publish_or_save: files_type });
+      res.status(200).json({
+        status: true,
+        message: "Subject files fetch successfully.",
+        data: find,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const deleteTeacherSubjectFiles = async (req, res) => {
+  try {
+    const { subject_file_id } = req.body;
+    const validation = validatorMethod({ subject_file_id }, res);
+    if (validation) {
+      const deleted = await SubjectFiles.findOneAndDelete({ subject_file_id });
+      res.status(200).json({
+        status: true,
+        message: "File delete successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 
 const fetchSubscriptionPlan = async (req, res) => {
   try {
@@ -1142,6 +1211,56 @@ const fetchSubscriptionPlan = async (req, res) => {
       message: "Subscription plan fetch successfully.",
       data: find,
     });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const SearchTeacher = async (req, res) => {
+  try {
+    const { search } = req.body;
+
+    if (search) {
+      // Constructing regex based on the input
+      const regex = new RegExp(search, "i") || null;
+
+      // Build the $match object to search in both fields
+      const matchCriteria = {
+        $or: [
+          { name: { $regex: regex } },
+          { email: { $regex: regex } },
+          { role_id: 4 },
+        ],
+      };
+      const find = await Users.aggregate([
+        {
+          $match: matchCriteria,
+        },
+      ]);
+      const modifiedArray = await find.map((item, index) => {
+        return { ...item, claim_number: generateClaimCode(item.user_id) }
+      })
+      if (find) {
+        res.status(200).json({
+          status: true,
+          message: "Teacher fetched successfully.",
+          data: modifiedArray,
+        });
+      } else {
+        res.status(200).json({
+          status: true,
+          message: "Teacher fetched successfully.",
+          data: [],
+        });
+      }
+    } else {
+      const find = await Institute.find({});
+      res.status(200).json({
+        status: true,
+        message: "Institute fetch successfully.",
+        data: find,
+      });
+    }
   } catch (error) {
     catchErrorValidation(error, res);
   }
@@ -1194,5 +1313,9 @@ module.exports = {
   createSubscriptionPlan,
   editSubscriptionPlan,
   deleteSubscriptionPlan,
-  fetchSubscriptionPlan
+  fetchSubscriptionPlan,
+  SearchTeacher,
+  fetchTeacherSubjectPage,
+  fetchTeacherSubjectFiles,
+  deleteTeacherSubjectFiles
 };

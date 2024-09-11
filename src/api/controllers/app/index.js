@@ -49,44 +49,6 @@ const fetchInstituteList = async (req, res) => {
   }
 };
 
-const fetchRiderDropDown = async (req, res) => {
-  try {
-    const { latitude, longitude } = req.body;
-    const validation = validatorMethod({ latitude, longitude }, res);
-    if (validation) {
-      // Convert kilometers to radians (5 km / Earth's radius in kilometers)
-      const riderRadius = await RiderRadius.findOne({})
-      const radiusInKm = parseFloat(riderRadius?.rider_radius) || 5;
-      const earthRadiusInKm = 6378.1;
-      const radiusInRadians = radiusInKm / earthRadiusInKm;
-
-      // Find riders within 5 km radius
-      const find = await Users.find({
-        role_id: '3',
-        rider_status_for_student: 'active',
-        location: {
-          $geoWithin: {
-            $centerSphere: [[longitude, latitude], radiusInRadians],
-          },
-        },
-      });
-
-      res.status(200).json({
-        status: true,
-        message: "Riders fetched successfully.",
-        data: find,
-      });
-    } else {
-      res.status(200).json({
-        status: false,
-        message: "Something went wrong!",
-      });
-    }
-  } catch (error) {
-    catchErrorValidation(error, res);
-  }
-};
-
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -458,6 +420,7 @@ const fetchSubscriberList = async (req, res) => {
 };
 
 const createSubjectFile = async (req, res) => {
+  console.log('req', req?.file?.key)
   const sendNotificationTitle = (id, title, date, time) => {
     if (id == "1") {
       return `${title} has been uploaded to the Copify app.`;
@@ -485,7 +448,7 @@ const createSubjectFile = async (req, res) => {
       {
         user_id,
         subject_id,
-        file_upload: req.file ? req.file.filename : null,
+        file_upload: req.file ? req.file.location : null,
         title,
         description,
         page_number,
@@ -500,7 +463,7 @@ const createSubjectFile = async (req, res) => {
       const created = await SubjectFiles.create({
         user_id,
         subject_id,
-        file_upload: req.file ? req.file.filename : null,
+        file_upload: req.file ? req.file.location : null,
         title,
         description,
         page_number,
@@ -529,7 +492,7 @@ const createSubjectFile = async (req, res) => {
         });
       }
     } else {
-      req.file && delete_file("uploads/", req.file.filename);
+      req.file && delete_file("uploads/", req.file.location);
       // delete_file("/uploads/country_images/", countryCode.country_image);
     }
   } catch (error) {
@@ -805,6 +768,43 @@ const fetchPaperSizeList = async (req, res) => {
       message: "Paper size fetch successfully.",
       data: modfiedArr,
     });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchRiderDropDown = async (req, res) => {
+  try {
+    const { latitude, longitude } = req.body;
+    const validation = validatorMethod({ latitude, longitude }, res);
+    if (validation) {
+      // Convert kilometers to radians (5 km / Earth's radius in kilometers)
+      const riderRadius = await RiderRadius.findOne({})
+      const radiusInKm = parseFloat(riderRadius?.rider_radius) || 5;
+      const earthRadiusInKm = 6378.1;
+      const radiusInRadians = radiusInKm / earthRadiusInKm;
+
+      const find = await Users.find({
+        role_id: '3',
+        rider_status_for_student: 'active',
+        location: {
+          $geoWithin: {
+            $centerSphere: [[longitude, latitude], radiusInRadians],
+          },
+        },
+      });
+
+      res.status(200).json({
+        status: true,
+        message: "Riders fetched successfully.",
+        data: find,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
   } catch (error) {
     catchErrorValidation(error, res);
   }

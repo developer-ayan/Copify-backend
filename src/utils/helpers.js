@@ -8,12 +8,12 @@ const uploads = path.join(__dirname, "../uploads/");
 
 const delete_file = async (path, fileName) => {
   console.log(uploads + fileName);
-  fs.unlink(uploads + fileName, function (err) {});
+  fs.unlink(uploads + fileName, function (err) { });
 };
 
 const check_extension = async (fileName) => {
   console.log(uploads + fileName);
-  fs.unlink(uploads + fileName, function (err) {});
+  fs.unlink(uploads + fileName, function (err) { });
 };
 
 const modifiedArray = async (id, value, arr) => {

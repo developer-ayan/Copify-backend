@@ -56,11 +56,13 @@ const subjectFileSchema = new mongoose.Schema(
         time: {
             type: String,
             trim: true,
-        }, 
+            default: null
+        },
         date: {
-            type: String,
+            type: Date,
             trim: true,
-        }, 
+            default: null
+        },
     },
     {
         timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
