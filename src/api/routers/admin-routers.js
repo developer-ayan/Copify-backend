@@ -56,7 +56,8 @@ const {
   SearchTeacher,
   fetchTeacherSubjectPage,
   fetchTeacherSubjectFiles,
-  deleteTeacherSubjectFiles
+  deleteTeacherSubjectFiles,
+  fetchSubscriberList
 } = require("../controllers/admin");
 
 // Import middleware
@@ -259,6 +260,12 @@ router.post(
   authAdminMiddleware,
   upload,
   deleteTeacherSubjectFiles
+);
+router.post(
+  "/fetch_teacher_subscriber_list",
+  authAdminMiddleware,
+  upload,
+  fetchSubscriberList
 );
 
 module.exports = router;

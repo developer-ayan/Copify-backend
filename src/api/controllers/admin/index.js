@@ -22,6 +22,7 @@ const SubscriptionPlan = require("../../models/common/subscription-plans");
 const Users = require("../../models/app/user");
 const Subject = require("../../models/app/createPage");
 const SubjectFiles = require("../../models/common/subject-file");
+const Subscribes = require("../../models/app/subscribe");
 
 const login = async (req, res) => {
   try {
@@ -1216,6 +1217,87 @@ const fetchSubscriptionPlan = async (req, res) => {
   }
 };
 
+const fetchSubscriberList = async (req, res) => {
+  try {
+    const { teacher_id, subject_id } = req.body;
+    const validation = validatorMethod({ teacher_id, subject_id }, res);
+    if (validation) {
+      const find = await Subscribes.aggregate([
+        {
+          $match: {
+            teacher_id: Number(teacher_id), // Match documents based on teacher_id
+            subject_id: Number(subject_id)
+          },
+        },
+        {
+          $lookup: {
+            from: "app_users", // Collection to join with
+            localField: "user_id", // Field from Subscribes
+            foreignField: "user_id", // Field from app_users
+            as: "students", // New array field to add
+          },
+        },
+        {
+          $unwind: {
+            path: "$students", // Unwind the semester array
+            preserveNullAndEmptyArrays: true, // Keep documents with no matches
+          },
+        },
+        {
+          $replaceRoot: {
+            newRoot: "$students", // Replace root with semester document
+          },
+        },
+        {
+          $project: {
+            _id: 1, // Include _id
+            name: 1, // Include name
+            email: 1, // Include email
+            role_id: 1, // Include role_id
+            institute_id: 1, // Include institute_id
+            account_status: 1, // Include account_status
+            created_at: 1, // Include created_at
+            updated_at: 1, // Include updated_at
+            user_id: 1, // Include user_id
+          },
+        },
+        {
+          $group: {
+            _id: null, // Group all documents into a single document
+            data: { $push: "$$ROOT" }, // Push each document into a data array
+          },
+        },
+        {
+          $project: {
+            _id: 0, // Exclude _id
+            data: 1, // Include the data array
+          },
+        },
+      ]);
+
+      const modifiedArray = await (find[0]?.data || []).map((item, index) => {
+        return {
+          ...item,
+          user_id: generateClaimCode(item.user_id),
+        };
+      });
+
+      res.status(200).json({
+        status: true,
+        message: "Subscribers fetched successfully.",
+        data: modifiedArray, // Safeguard against empty result
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 const SearchTeacher = async (req, res) => {
   try {
     const { search } = req.body;
@@ -1317,5 +1399,6 @@ module.exports = {
   SearchTeacher,
   fetchTeacherSubjectPage,
   fetchTeacherSubjectFiles,
-  deleteTeacherSubjectFiles
+  deleteTeacherSubjectFiles,
+  fetchSubscriberList
 };
