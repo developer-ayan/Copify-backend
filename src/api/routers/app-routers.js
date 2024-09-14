@@ -22,12 +22,14 @@ const {
   editDefaultAddress,
   EditRiderCoordinates,
   fetchPaperSizeList,
-  fetchRiderDropDown
+  fetchRiderDropDown,
+  fetchTeacherSubjectFiles
 } = require("../controllers/app");
 
 // Import middleware
 const { authAppMiddleware } = require("../middlewares/authMiddleware");
 const fileUpload = require("../../config/file-folder-check");
+const { fetchTeacherSubjectPage } = require("../controllers/admin");
 
 // Authentication routes
 router.post("/login", upload, login);
@@ -51,10 +53,21 @@ router.post(
   createSubjectFile
 );
 router.post(
+  "/fetch_teacher_subject_list",
+  upload,
+  fetchTeacherSubjectPage
+);
+router.post(
   "/teacher_subject_list",
   authAppMiddleware,
   fileUpload,
   teacherSubjectList
+);
+router.post(
+  "/teacher_subject_file_list",
+  authAppMiddleware,
+  fileUpload,
+  fetchTeacherSubjectFiles
 );
 router.post(
   "/fetch_department_list",

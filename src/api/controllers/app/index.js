@@ -7,6 +7,7 @@ const {
   sendNotification,
   getValueById,
   generateClaimCode,
+  toFixedMethod,
 } = require("../../../utils/helpers");
 const { secret_key, SEMESTERS } = require("../../../utils/static-values");
 const jwt = require("jsonwebtoken");
@@ -524,6 +525,30 @@ const teacherSubjectList = async (req, res) => {
   }
 };
 
+const fetchTeacherSubjectFiles = async (req, res) => {
+  try {
+    const { user_id, publish_or_save } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+    if (validation) {
+      const find = await SubjectFiles.find({ user_id, publish_or_save });
+      if (find) {
+        res.status(200).json({
+          status: true,
+          message: "Subject fetch successfully.",
+          data: find,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 // Common controllers with authentication middleware
 
 const notificationList = async (req, res) => {
@@ -757,12 +782,13 @@ const editDefaultAddress = async (req, res) => {
 
 const fetchPaperSizeList = async (req, res) => {
   try {
-    const find = await PaperSizes.find({});
+    const find = await PaperSizes.find({}).lean();
     const modfiedArr = await modifiedArray(
       "paper_size_id",
       "paper_size",
-      find
-    );
+      find,
+      true
+    )
     res.status(200).json({
       status: true,
       message: "Paper size fetch successfully.",
@@ -784,20 +810,32 @@ const fetchRiderDropDown = async (req, res) => {
       const earthRadiusInKm = 6378.1;
       const radiusInRadians = radiusInKm / earthRadiusInKm;
 
-      const find = await Users.find({
-        role_id: '3',
-        rider_status_for_student: 'active',
-        location: {
-          $geoWithin: {
-            $centerSphere: [[longitude, latitude], radiusInRadians],
-          },
-        },
-      });
+      const find = await Users.aggregate([
+        {
+          $geoNear: {
+            near: {
+              type: "Point",
+              coordinates: [Number(longitude), Number(latitude)],
+            },
+            distanceField: "distance",
+            maxDistance: radiusInKm * 1000, // Convert kilometers to meters
+            spherical: true,
+            query: {
+              role_id: '3',
+              rider_status_for_student: 'active'
+            }
+          }
+        }
+      ]);
+
+      const modifiedArray = find?.map((item, index) => {
+        return { user_id: item.user_id, name: item.name, distance: toFixedMethod(item.distance) }
+      })
 
       res.status(200).json({
         status: true,
         message: "Riders fetched successfully.",
-        data: find,
+        data: modifiedArray,
       });
     } else {
       res.status(200).json({
@@ -825,6 +863,7 @@ module.exports = {
   fetchSubscriberList,
   // student
   createSubscribeSubjectForStudent,
+  fetchTeacherSubjectFiles,
   // common
   notificationList,
   fetchCartSubjectFileList,

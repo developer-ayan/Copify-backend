@@ -94,6 +94,8 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
+userSchema.index({ location: '2dsphere' });
+
 const Users =
   mongoose.models.app_users || mongoose.model("app_users", userSchema);
 

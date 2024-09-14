@@ -16,9 +16,13 @@ const check_extension = async (fileName) => {
   fs.unlink(uploads + fileName, function (err) { });
 };
 
-const modifiedArray = async (id, value, arr) => {
+const modifiedArray = async (id, value, arr, childData) => {
   const modfiedArr = arr.map((item, index) => {
-    return { id: item[id], value: item[value] };
+    if (childData) {
+      return { ...item, id: item[id], value: item[value] };
+    } else {
+      return { id: item[id], value: item[value] };
+    }
   });
   return modfiedArr;
 };
@@ -169,6 +173,11 @@ const getValueById = (arr, id) => {
   return getValue;
 };
 
+const toFixedMethod = (number) => {
+  const num = isNaN(number) ? "0.00" : parseFloat(number).toFixed(2)
+  return num.toString()
+}
+
 module.exports = {
   delete_file,
   sendNotification,
@@ -179,4 +188,5 @@ module.exports = {
   modifiedArray,
   generateClaimCode,
   getValueById,
+  toFixedMethod
 };
