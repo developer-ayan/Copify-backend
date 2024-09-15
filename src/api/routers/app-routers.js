@@ -23,7 +23,11 @@ const {
   EditRiderCoordinates,
   fetchPaperSizeList,
   fetchRiderDropDown,
-  fetchTeacherSubjectFiles
+  fetchTeacherSubjectFiles,
+  editWalletTopup,
+  fetchTransactions,
+  createPlaceOrder,
+  fetchOrderList
 } = require("../controllers/app");
 
 // Import middleware
@@ -119,6 +123,10 @@ router.post(
 );
 router.post("/fetch_paper_size_list", authAppMiddleware, upload, fetchPaperSizeList);
 router.post("/fetch_riders_list", authAppMiddleware, upload, fetchRiderDropDown);
+router.post("/edit_wallet_topup", authAppMiddleware, upload, editWalletTopup);
+router.post("/fetch_transaction_list", authAppMiddleware, upload, fetchTransactions);
+router.post("/create_place_order", authAppMiddleware, upload, createPlaceOrder);
+router.post("/fetch_order_list", authAppMiddleware, upload, fetchOrderList);
 
 // rider
 router.post(

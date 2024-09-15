@@ -8,8 +8,10 @@ const addressSchema = new mongoose.Schema(
       required: [true, "Address is required"],
       trim: true,
     },
-    postal_code: {
+    title: {
       type: String,
+      required: [true, "Title is required"],
+      trim: true,
     },
     default_select: {
       type: Boolean,

@@ -4,6 +4,8 @@ const path = require("path");
 const Notification = require("../api/models/common/notification");
 const Users = require("../api/models/app/user");
 const nodemailer = require("nodemailer");
+const Transaction = require("../api/models/common/transaction");
+const Wallet = require("../api/models/common/wallet");
 const uploads = path.join(__dirname, "../uploads/");
 
 const delete_file = async (path, fileName) => {
@@ -47,6 +49,20 @@ async function sendNotification(user_id, heading, message) {
       user_id: find?.user_id,
       heading,
       message,
+    });
+    return true;
+  } catch (error) {
+    return error.message;
+  }
+}
+
+async function saveTransaction(user_id, amount, transaction_reason, transaction_ref_id) {
+  try {
+    const transaction = await Transaction.create({
+      user_id: user_id,
+      amount,
+      transaction_reason,
+      transaction_ref_id
     });
     return true;
   } catch (error) {
@@ -122,6 +138,95 @@ async function sendEmail() {
   console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
 }
 
+const walletHandler = async ({ user_id, amount, transactionType, transaction_reason }) => {
+  try {
+    const find = await Wallet.findOne({ user_id });
+
+    let updatedAmount;
+
+    if (find) {
+      let existingAmount = parseFloat(find?.amount);
+
+      if (transactionType === "credit") {
+        updatedAmount = existingAmount + parseFloat(amount);
+      } else if (transactionType === "debit") {
+        updatedAmount = existingAmount - parseFloat(amount);
+      } else {
+        return {
+          status: false,
+          message: "Invalid transaction type!",
+        };
+      }
+
+      const updated = await Wallet.findOneAndUpdate(
+        { user_id: user_id },
+        { $set: { amount: updatedAmount } },
+        { new: true }
+      );
+
+      if (updated) {
+        const created = await Transaction.create({
+          user_id,
+          amount: toFixedMethod(amount),
+          transaction_reason: transaction_reason || 'Xendit topup',
+          transaction_type: transactionType,
+          transaction_ref_id: generateTransactionId()
+        });
+
+        return {
+          status: true,
+          message: `${toFixedMethod(amount)} PHP has been ${transactionType}ed from your account.`,
+          data: created
+        };
+      } else {
+        return {
+          status: false,
+          message: "Something went wrong!",
+        };
+      }
+    } else {
+      if (transactionType === "debit") {
+        return {
+          status: false,
+          message: "Account does not exist for debit transaction!",
+        };
+      }
+
+      const created = await Wallet.create({
+        user_id,
+        amount: transactionType === "credit" ? amount : 0
+      });
+
+      if (created) {
+        const created = await Transaction.create({
+          user_id,
+          amount: toFixedMethod(amount),
+          transaction_reason: transaction_reason || 'Xendit topup',
+          transaction_type: transactionType,
+          transaction_ref_id: generateTransactionId()
+        });
+
+        return {
+          status: true,
+          message: `${toFixedMethod(amount)} PHP has been ${transactionType}ed to your account.`,
+          data: created
+        };
+      } else {
+        return {
+          status: false,
+          message: "Something went wrong!",
+        };
+      }
+    }
+  } catch (error) {
+    return {
+      status: false,
+      message: "An error occurred!",
+    };
+  }
+};
+
+
 function validatorMethod(args, res) {
   // args contains the data to validate
   const data = args || {}; // Extract data to validate
@@ -178,6 +283,10 @@ const toFixedMethod = (number) => {
   return num.toString()
 }
 
+function generateTransactionId() {
+  return 'txn_' + Math.random().toString(36).substr(2, 9) + Date.now();
+}
+
 module.exports = {
   delete_file,
   sendNotification,
@@ -188,5 +297,8 @@ module.exports = {
   modifiedArray,
   generateClaimCode,
   getValueById,
-  toFixedMethod
+  toFixedMethod,
+  saveTransaction,
+  generateTransactionId,
+  walletHandler
 };

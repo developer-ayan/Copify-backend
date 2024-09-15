@@ -8,6 +8,9 @@ const {
   getValueById,
   generateClaimCode,
   toFixedMethod,
+  saveTransaction,
+  generateTransactionId,
+  walletHandler,
 } = require("../../../utils/helpers");
 const { secret_key, SEMESTERS } = require("../../../utils/static-values");
 const jwt = require("jsonwebtoken");
@@ -24,6 +27,9 @@ const DeliveryCharges = require("../../models/common/delivery-charges");
 const Address = require("../../models/common/address");
 const PaperSizes = require("../../models/common/paper-sizes");
 const RiderRadius = require("../../models/common/rider-radius");
+const Wallet = require("../../models/common/wallet");
+const Transaction = require("../../models/common/transaction");
+const Order = require("../../models/app/order");
 
 const fetchInstituteList = async (req, res) => {
   try {
@@ -677,8 +683,8 @@ const fetchCartSubjectFileList = async (req, res) => {
 
 const createAddress = async (req, res) => {
   try {
-    const { address, postal_code, user_id } = req.body;
-    const validation = validatorMethod({ address, user_id }, res);
+    const { address, title, user_id } = req.body;
+    const validation = validatorMethod({ address, title, user_id }, res);
     if (validation) {
       // Check if a subscription already exists
       const existing = await Address.findOne({
@@ -690,7 +696,7 @@ const createAddress = async (req, res) => {
         await Address.create({
           address,
           default_select: false,
-          postal_code,
+          title,
           user_id,
         });
 
@@ -703,7 +709,7 @@ const createAddress = async (req, res) => {
         const created = await Address.create({
           address,
           default_select: true,
-          postal_code,
+          title,
           user_id,
         });
         if (created) {
@@ -808,7 +814,6 @@ const fetchRiderDropDown = async (req, res) => {
       const riderRadius = await RiderRadius.findOne({})
       const radiusInKm = parseFloat(riderRadius?.rider_radius) || 5;
       const earthRadiusInKm = 6378.1;
-      const radiusInRadians = radiusInKm / earthRadiusInKm;
 
       const find = await Users.aggregate([
         {
@@ -848,6 +853,209 @@ const fetchRiderDropDown = async (req, res) => {
   }
 };
 
+const editWalletTopup = async (req, res) => {
+  try {
+    const { user_id, amount, card_number, year, month, cvv } = req.body;
+    const validation = validatorMethod({ user_id, amount, card_number, year, month, cvv }, res);
+    if (validation) {
+      const response = await walletHandler({ user_id, transactionType: 'credit', amount })
+      if (response) {
+        res.status(200).json(response)
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const createPlaceOrder = async (req, res) => {
+  try {
+    const {
+      user_id,
+      rider_id,
+      subject_file_ids,
+      self_pickup,
+      address_id,
+      shop_id,
+      rider_charges,
+      sub_total,
+      total_price,
+      transaction_type
+    } = req.body;
+    const validation = validatorMethod({
+      user_id,
+      rider_id,
+      subject_file_ids,
+      address_id,
+      sub_total,
+      total_price,
+      transaction_type
+    }, res);
+
+    if (transaction_type == 'wallet') {
+      const find = await Wallet.findOne({ user_id });
+      if (find) {
+        const currentWalletAmount = parseFloat(find?.amount);
+        const totalPrice = parseFloat(total_price);
+
+        // Check if the current wallet amount is less than the total price
+        if (currentWalletAmount < totalPrice) {
+          return res.status(200).json({
+            status: false,
+            message: `You need to top up ${toFixedMethod(totalPrice - currentWalletAmount)} PHP.`,
+          });
+        } else {
+          const response = await walletHandler({ user_id, transactionType: 'debit', amount: total_price, transaction_reason: "You have placed the order. This is the amount that has been debited." })
+          if (response?.status == true) {
+            const created = await Order.create({
+              user_id,
+              rider_id,
+              subject_file_ids,
+              self_pickup,
+              address_id,
+              order_status: "pending",
+              shop_id,
+              rider_charges,
+              sub_total,
+              total_price,
+              transaction_id: response?.data?.transaction_id
+            });
+            if (created) {
+              res.status(200).json({
+                status: true,
+                message: "Order Place successfully.",
+                data: created,
+              });
+            } else {
+              res.status(200).json({
+                status: false,
+                message: "Something went wrong!",
+              });
+            }
+          } else {
+            res.status(200).json({
+              status: false,
+              message: "Something went wrong!",
+            });
+          }
+        }
+      } else {
+        res.status(200).json({
+          status: false,
+          message: `You need to top up ${toFixedMethod(total_price)} PHP.`
+        });
+      }
+    }
+
+    if (validation) {
+
+      const created = await Order.create({
+        user_id,
+        rider_id,
+        subject_file_ids,
+        self_pickup,
+        address_id,
+        order_status: "pending",
+        shop_id,
+        rider_charges,
+        sub_total,
+        total_price
+      });
+      if (created) {
+        res.status(200).json({
+          status: true,
+          message: "Order Place successfully.",
+          data: created,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchOrderList = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+    if (validation) {
+      const find = await Order.find({ user_id }).sort({ created_at: -1 }).lean();
+      res.status(200).json({
+        status: true,
+        message: "Order fetch successfully.",
+        data: find,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchTransactions = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+    if (validation) {
+      const find = await Wallet.aggregate([
+        {
+          $match: {
+            user_id: user_id, // Match the wallet based on user_id
+          },
+        },
+        {
+          $lookup: {
+            from: "transactions", // The collection to join with
+            localField: "user_id", // Field from Wallet
+            foreignField: "user_id", // Field from Transactions
+            as: "transactions", // The name of the new array field to add to the result
+          },
+        },
+        {
+          $unwind: "$transactions" // Deconstruct the transactions array
+        },
+        {
+          $sort: { "transactions.created_at": -1 } // Sort transactions in descending order based on created_at
+        },
+        {
+          $group: {
+            _id: "$_id", // Group by Wallet's _id
+            user_id: { $first: "$user_id" }, // Include user_id
+            amount: { $first: "$amount" }, // Include wallet amount
+            transactions: { $push: "$transactions" } // Reconstruct transactions array with sorted transactions
+          }
+        }
+      ]);
+      res.status(200).json({
+        status: true,
+        message: "Transaction fetch successfully.",
+        data: find,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 module.exports = {
   // teacher
   login,
@@ -872,6 +1080,10 @@ module.exports = {
   editDefaultAddress,
   fetchPaperSizeList,
   fetchRiderDropDown,
+  editWalletTopup,
+  fetchTransactions,
+  createPlaceOrder,
+  fetchOrderList,
   //rider
   EditRiderCoordinates,
 };
