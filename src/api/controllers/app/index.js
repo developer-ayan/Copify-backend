@@ -683,8 +683,8 @@ const fetchCartSubjectFileList = async (req, res) => {
 
 const createAddress = async (req, res) => {
   try {
-    const { address, title, user_id } = req.body;
-    const validation = validatorMethod({ address, title, user_id }, res);
+    const { address, title, contact_number, user_id } = req.body;
+    const validation = validatorMethod({ address, title, contact_number, user_id }, res);
     if (validation) {
       // Check if a subscription already exists
       const existing = await Address.findOne({
@@ -696,6 +696,7 @@ const createAddress = async (req, res) => {
         await Address.create({
           address,
           default_select: false,
+          contact_number,
           title,
           user_id,
         });
@@ -709,6 +710,7 @@ const createAddress = async (req, res) => {
         const created = await Address.create({
           address,
           default_select: true,
+          contact_number,
           title,
           user_id,
         });

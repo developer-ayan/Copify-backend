@@ -13,6 +13,11 @@ const addressSchema = new mongoose.Schema(
       required: [true, "Title is required"],
       trim: true,
     },
+    contact_number: {
+      type: String,
+      required: [true, "contact_number is required"],
+      trim: true,
+    },
     default_select: {
       type: Boolean,
     },
