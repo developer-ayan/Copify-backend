@@ -27,7 +27,11 @@ const {
   editWalletTopup,
   fetchTransactions,
   createPlaceOrder,
-  fetchOrderList
+  fetchOrderList,
+  deleteTeacherSubjectFiles,
+  SendMessages,
+  fetchMessagesList,
+  fetchInboxList
 } = require("../controllers/app");
 
 // Import middleware
@@ -64,32 +68,56 @@ router.post(
 router.post(
   "/teacher_subject_list",
   authAppMiddleware,
-  fileUpload,
+  upload,
   teacherSubjectList
 );
 router.post(
   "/teacher_subject_file_list",
   authAppMiddleware,
-  fileUpload,
+  upload,
   fetchTeacherSubjectFiles
+);
+router.post(
+  "/delete_subject_file",
+  authAppMiddleware,
+  upload,
+  deleteTeacherSubjectFiles
 );
 router.post(
   "/fetch_department_list",
   authAppMiddleware,
-  fileUpload,
+  upload,
   fetchDepartmentList
 );
 router.post(
   "/fetch_semester_list",
   authAppMiddleware,
-  fileUpload,
+  upload,
   fetchSemesterList
 );
 router.post(
   "/fetch_subscriber_list",
   authAppMiddleware,
-  fileUpload,
+  upload,
   fetchSubscriberList
+);
+router.post(
+  "/send_message",
+  authAppMiddleware,
+  upload,
+  SendMessages
+);
+router.post(
+  "/fetch_messages_list",
+  authAppMiddleware,
+  upload,
+  fetchMessagesList
+);
+router.post(
+  "/fetch_inbox_list",
+  authAppMiddleware,
+  upload,
+  fetchInboxList
 );
 
 // Student routes with authentication middleware

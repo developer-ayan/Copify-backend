@@ -11,6 +11,7 @@ const {
   saveTransaction,
   generateTransactionId,
   walletHandler,
+  generateChatRoomId,
 } = require("../../../utils/helpers");
 const { secret_key, SEMESTERS } = require("../../../utils/static-values");
 const jwt = require("jsonwebtoken");
@@ -30,6 +31,7 @@ const RiderRadius = require("../../models/common/rider-radius");
 const Wallet = require("../../models/common/wallet");
 const Transaction = require("../../models/common/transaction");
 const Order = require("../../models/app/order");
+const Chat = require("../../models/common/chat");
 
 const fetchInstituteList = async (req, res) => {
   try {
@@ -555,6 +557,22 @@ const fetchTeacherSubjectFiles = async (req, res) => {
   }
 };
 
+const deleteTeacherSubjectFiles = async (req, res) => {
+  try {
+    const { subject_file_id } = req.body;
+    const validation = validatorMethod({ subject_file_id }, res);
+    if (validation) {
+      const deleted = await SubjectFiles.findOneAndDelete({ subject_file_id });
+      res.status(200).json({
+        status: true,
+        message: "File delete successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 // Common controllers with authentication middleware
 
 const notificationList = async (req, res) => {
@@ -1058,6 +1076,118 @@ const fetchTransactions = async (req, res) => {
   }
 };
 
+const SendMessages = async (req, res) => {
+  try {
+    const { user_id, opposite_user_id, message } = req.body;
+    const validation = validatorMethod({ user_id, opposite_user_id, message }, res);
+    const createdAt = new Date().toISOString();
+    if (!validation) return;
+    const room_id = await generateChatRoomId(user_id, opposite_user_id);
+    const find = await Chat.findOne({ room_id });
+    if (find) {
+      const parseMessage = JSON.parse(find.messages);
+      parseMessage.push({ message, user_id, created_at: createdAt });
+      find.last_message = message || find.last_message;
+      find.messages = JSON.stringify(parseMessage);
+      await find.save();
+    } else {
+      await Chat.create({
+        last_message: message,
+        messages: JSON.stringify([{ message, user_id, created_at: createdAt }]),
+        room_id,
+        user_id_1: user_id,
+        user_id_2: opposite_user_id,
+      });
+    }
+
+    res.status(200).json({
+      status: true,
+      message: "Send message successfully.",
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchMessagesList = async (req, res) => {
+  try {
+    const { user_id, opposite_user_id } = req.body;
+    const validation = validatorMethod({ user_id, opposite_user_id }, res);
+    if (validation) {
+      const room_id = await generateChatRoomId(user_id, opposite_user_id);
+      const find = await Chat.find({ room_id }).lean();
+      const modifiedArray = await find.map((item, index) => {
+        return {
+          ...item,
+          messages: item?.messages ? JSON.parse(item?.messages) : [],
+        }
+      })
+      res.status(200).json({
+        status: true,
+        message: "Messages fetch successfully.",
+        data: modifiedArray,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchInboxList = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+
+    if (!validation) {
+      return res.status(400).json({
+        status: false,
+        message: "Validation failed.",
+      });
+    }
+
+    // Fetch chats where user_id matches either user_id_1 or user_id_2
+    const find = await Chat.find({
+      $or: [
+        { user_id_1: user_id },
+        { user_id_2: user_id },
+      ]
+    }).lean();
+
+    // Process each chat document
+    const modifiedArray = await Promise.all(find.map(async (item) => {
+      // Determine the opposite user ID
+      const opposite_user_id = item.user_id_1 === user_id ? item.user_id_2 : item.user_id_1;
+
+      // Fetch the details of the opposite user
+      const opposite_user_detail = await Users.findOne({ user_id: opposite_user_id }).lean();
+
+      // Exclude messages and include opposite user's name
+      const { messages, ...rest } = item;
+      return {
+        ...rest,
+        name: opposite_user_detail?.name
+      };
+    }));
+
+    res.status(200).json({
+      status: true,
+      message: "Messages fetched successfully.",
+      data: modifiedArray,
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+
+
+
+
 module.exports = {
   // teacher
   login,
@@ -1074,6 +1204,7 @@ module.exports = {
   // student
   createSubscribeSubjectForStudent,
   fetchTeacherSubjectFiles,
+  deleteTeacherSubjectFiles,
   // common
   notificationList,
   fetchCartSubjectFileList,
@@ -1086,6 +1217,9 @@ module.exports = {
   fetchTransactions,
   createPlaceOrder,
   fetchOrderList,
+  SendMessages,
+  fetchMessagesList,
+  fetchInboxList,
   //rider
   EditRiderCoordinates,
 };

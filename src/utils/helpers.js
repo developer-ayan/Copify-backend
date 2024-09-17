@@ -287,6 +287,14 @@ function generateTransactionId() {
   return 'txn_' + Math.random().toString(36).substr(2, 9) + Date.now();
 }
 
+function generateChatRoomId(user_id_1, user_id_2) {
+  // Sort the user IDs to ensure consistency
+  const sortedIds = [user_id_1, user_id_2].sort();
+  // Concatenate the sorted IDs to form the chat room ID
+  const merge_id = sortedIds.join('_');
+  return merge_id;
+}
+
 module.exports = {
   delete_file,
   sendNotification,
@@ -300,5 +308,6 @@ module.exports = {
   toFixedMethod,
   saveTransaction,
   generateTransactionId,
-  walletHandler
+  walletHandler,
+  generateChatRoomId
 };
