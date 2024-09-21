@@ -62,6 +62,7 @@ const {
 
 // Import middleware
 const { authAdminMiddleware } = require("../middlewares/authMiddleware");
+const { SendMessages, fetchInboxList, fetchMessagesList } = require("../controllers/app");
 
 // Authentication routes
 router.post("/login", upload, login);
@@ -266,6 +267,25 @@ router.post(
   authAdminMiddleware,
   upload,
   fetchSubscriberList
+);
+
+router.post(
+  "/send_message",
+  authAdminMiddleware,
+  upload,
+  SendMessages
+);
+router.post(
+  "/fetch_messages_list",
+  authAdminMiddleware,
+  upload,
+  fetchMessagesList
+);
+router.post(
+  "/fetch_inbox_list",
+  authAdminMiddleware,
+  upload,
+  fetchInboxList
 );
 
 module.exports = router;

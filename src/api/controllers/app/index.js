@@ -1125,7 +1125,7 @@ const fetchMessagesList = async (req, res) => {
       res.status(200).json({
         status: true,
         message: "Messages fetch successfully.",
-        data: modifiedArray,
+        data: modifiedArray?.[0]?.messages || [],
       });
     } else {
       res.status(200).json({

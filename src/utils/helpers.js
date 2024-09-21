@@ -226,31 +226,43 @@ const walletHandler = async ({ user_id, amount, transactionType, transaction_rea
   }
 };
 
-
 function validatorMethod(args, res) {
-  // args contains the data to validate
-  const data = args || {}; // Extract data to validate
-  let error = "";
+  try {
+    // args contains the data to validate
+    const data = args || {}; // Extract data to validate
+    let error = "";
 
-  // Iterate over each field in the data and check if it's empty
-  for (const [field, value] of Object.entries(data)) {
-    if (value == "undefined" || value == null || (value == "" && !value)) {
-      error = `${field} is required`;
-      break;
+    // Iterate over each field in the data and check if it's empty or invalid
+    for (const [field, value] of Object.entries(data)) {
+      if (typeof value === "undefined" || value === null || value === "") {
+        error = `${field} is required`;
+        break;
+      }
     }
-  }
 
-  if (error) {
-    // Respond with status code 200 and error messages if there are validation errors
-    res.status(200).json({
+    if (error) {
+      // Respond with status code 200 and error messages if there are validation errors
+      res.status(200).json({
+        success: false,
+        message: error,
+      });
+      return; // Return early to avoid further execution
+    } else {
+      return true; // No validation errors
+    }
+  } catch (err) {
+    // Log any unexpected errors
+    console.error("Validation error:", err);
+
+    // Prevent crash and respond with error
+    res.status(500).json({
       success: false,
-      message: error,
+      message: "Server error during validation",
     });
-    return 0;
-  } else {
-    return 1;
+    return; // Return early to avoid further execution
   }
 }
+
 
 const catchErrorValidation = async (error, res) => {
   if (error.name === "ValidationError") {
