@@ -1,10 +1,13 @@
 const mongoose = require('mongoose');
 const { database_name } = require('../utils/static-values');
 
-const username = 'ayanahmed255'; // Replace with your actual username
-const password = 'Hello786@'; // Replace with your actual password (URL-encoded if necessary)
+const username = 'ayanahmed255';
+const password = 'Hello786@';
 
-mongoose.connect(`mongodb+srv://${username}:${encodeURIComponent(password)}@cluster0.kffyovn.mongodb.net/${database_name}`)
+mongoose.connect(`mongodb+srv://${username}:${encodeURIComponent(password)}@cluster0.kffyovn.mongodb.net/${database_name}?retryWrites=true&w=majority`, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then(() => {
     console.log("Connected to MongoDB");
   })
