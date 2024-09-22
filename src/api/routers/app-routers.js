@@ -31,7 +31,8 @@ const {
   deleteTeacherSubjectFiles,
   SendMessages,
   fetchMessagesList,
-  fetchInboxList
+  fetchInboxList,
+  fetchUsers
 } = require("../controllers/app");
 
 // Import middleware
@@ -155,6 +156,7 @@ router.post("/edit_wallet_topup", authAppMiddleware, upload, editWalletTopup);
 router.post("/fetch_transaction_list", authAppMiddleware, upload, fetchTransactions);
 router.post("/create_place_order", authAppMiddleware, upload, createPlaceOrder);
 router.post("/fetch_order_list", authAppMiddleware, upload, fetchOrderList);
+router.post("/fetch_users_list", authAppMiddleware, upload, fetchUsers);
 
 // rider
 router.post(

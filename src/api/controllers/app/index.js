@@ -92,15 +92,17 @@ const login = async (req, res) => {
           { user_id: find.user_id, email: find.email },
           secret_key
         );
-
-        // Save the token to the user document
+        find.claim_no = generateClaimCode(find.user_id)
         find.token = token;
         await find.save();
+
+        const userResponse = find.toObject();
+        userResponse.claim_no = generateClaimCode(find.user_id)
 
         res.status(200).json({
           status: true,
           message: "Login successful.",
-          data: find,
+          data: userResponse,
         });
       }
     }
@@ -142,10 +144,12 @@ const register = async (req, res) => {
           // Save the token to the user document
           created.token = token;
           await created.save();
+          const userResponse = created.toObject();
+          userResponse.claim_no = generateClaimCode(created.user_id)
           res.status(200).json({
             status: true,
             message: "Account has been created.",
-            data: created,
+            data: userResponse,
           });
         } else {
           res.status(200).json({
@@ -825,6 +829,37 @@ const fetchPaperSizeList = async (req, res) => {
   }
 };
 
+const fetchUsers = async (req, res) => {
+  try {
+    const { role_id } = req.body;
+
+    // Validate role_id
+    const validation = validatorMethod({ role_id }, res);
+    if (validation) {
+      // Find users by role_id
+      const find = await Users.find({ role_id }).lean();
+
+      // Modify the array as per your requirements
+      const modifiedArr = await modifiedArray(
+        "user_id",
+        "name",
+        find,
+      );
+
+      // Send successful response
+      res.status(200).json({
+        status: true,
+        message: "Users fetched successfully.",
+        data: modifiedArr,
+      });
+    }
+  } catch (error) {
+    // Handle errors
+    catchErrorValidation(error, res);
+  }
+};
+
+
 const fetchRiderDropDown = async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
@@ -853,9 +888,15 @@ const fetchRiderDropDown = async (req, res) => {
         }
       ]);
 
-      const modifiedArray = find?.map((item, index) => {
-        return { user_id: item.user_id, name: item.name, distance: toFixedMethod(item.distance) }
-      })
+      const modifiedArray = find?.map((item) => {
+        const price = parseFloat(item.distance) * 10; // Price ko distance se multiply karein
+        return {
+          user_id: item.user_id,
+          name: item.name,
+          distance: toFixedMethod(item.distance),
+          price: toFixedMethod(price)
+        };
+      });
 
       res.status(200).json({
         status: true,
@@ -875,23 +916,90 @@ const fetchRiderDropDown = async (req, res) => {
 
 const editWalletTopup = async (req, res) => {
   try {
-    const { user_id, amount, card_number, year, month, cvv } = req.body;
-    const validation = validatorMethod({ user_id, amount, card_number, year, month, cvv }, res);
-    if (validation) {
-      const response = await walletHandler({ user_id, transactionType: 'credit', amount })
-      if (response) {
-        res.status(200).json(response)
-      } else {
-        res.status(200).json({
-          status: false,
-          message: "Something went wrong!",
+    const { user_id, amount, card_number, year, month, cvv, is_admin, recharge, transfer, opposite_user_id, withdraw } = req.body;
+
+    // Admin wallet handling
+    if (is_admin) {
+
+      if (withdraw) {
+        const response = await walletHandler({
+          user_id,
+          transactionType: 'debit',
+          amount,
+          transaction_reason: `You have withdrawn ${toFixedMethod(amount)} PHP`,
         });
+        return res.status(200).json(response);
+      }
+      // Handling recharge
+      if (recharge) {
+        const response = await walletHandler({
+          user_id,
+          transactionType: 'credit',
+          amount,
+          transaction_reason: `You have recharged ${toFixedMethod(amount)} PHP to your wallet.`,
+        });
+        return res.status(200).json(response);
+      }
+
+      // Handling transfer
+      if (transfer) {
+        const findFrom = await Users.findOne({ user_id });
+        const findTo = await Users.findOne({ user_id: opposite_user_id });
+
+        // Debit from sender
+        await walletHandler({
+          user_id,
+          transactionType: 'debit',
+          amount,
+          transaction_reason: `You have sent ${toFixedMethod(amount)} PHP to ${findTo?.name}.`,
+          res: res
+        });
+
+        // Credit to receiver
+        const creditResponse = await walletHandler({
+          user_id: opposite_user_id,
+          transactionType: 'credit',
+          amount,
+          transaction_reason: `You have received ${toFixedMethod(amount)} PHP from ${findFrom?.name}.`,
+          res: res
+        });
+
+        if (!creditResponse.status) {
+          return res.status(200).json(creditResponse);
+        }
+
+        return res.status(200).json({
+          status: true,
+          message: `${amount} PHP has been transferred successfully.`,
+        });
+      }
+    }
+
+    // Non-admin wallet handling
+    else {
+      const validation = validatorMethod({ user_id, amount, card_number, year, month, cvv }, res);
+      if (validation) {
+        const response = await walletHandler({
+          user_id,
+          transactionType: 'credit',
+          amount,
+        });
+
+        if (response) {
+          return res.status(200).json(response);
+        } else {
+          return res.status(200).json({
+            status: false,
+            message: "Something went wrong!",
+          });
+        }
       }
     }
   } catch (error) {
     catchErrorValidation(error, res);
   }
 };
+
 
 const createPlaceOrder = async (req, res) => {
   try {
@@ -1010,10 +1118,13 @@ const fetchOrderList = async (req, res) => {
     const validation = validatorMethod({ user_id }, res);
     if (validation) {
       const find = await Order.find({ user_id }).sort({ created_at: -1 }).lean();
+      const modifiedArray = find?.map((item, index) => {
+        return { ...item, order_id: generateClaimCode(item.order_id, 'ORD#') }
+      })
       res.status(200).json({
         status: true,
         message: "Order fetch successfully.",
-        data: find,
+        data: modifiedArray,
       });
     } else {
       res.status(200).json({
@@ -1220,6 +1331,7 @@ module.exports = {
   SendMessages,
   fetchMessagesList,
   fetchInboxList,
+  fetchUsers,
   //rider
   EditRiderCoordinates,
 };

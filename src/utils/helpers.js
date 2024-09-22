@@ -280,8 +280,8 @@ const catchErrorValidation = async (error, res) => {
   }
 };
 
-const generateClaimCode = (number) => {
-  const prefix = "CDK";
+const generateClaimCode = (number, code) => {
+  const prefix = code || "CDK";
   const paddedNumber = String(number).padStart(7, "0");
   return prefix + paddedNumber;
 };
