@@ -32,6 +32,8 @@ const Wallet = require("../../models/common/wallet");
 const Transaction = require("../../models/common/transaction");
 const Order = require("../../models/app/order");
 const Chat = require("../../models/common/chat");
+const BuySubscription = require("../../models/app/buy-subscription");
+const SubscriptionPlan = require("../../models/common/subscription-plans");
 
 const fetchInstituteList = async (req, res) => {
   try {
@@ -113,10 +115,14 @@ const login = async (req, res) => {
 
 const register = async (req, res) => {
   try {
-    const { email, password, name, contact_number, role_id, institute_id } =
+    const { email, password, name, contact_number, role_id, institute_id, semester_id,
+      department_id,
+      year_level } =
       req.body;
     const validation = validatorMethod(
-      { email, name, role_id, contact_number, institute_id, password },
+      {
+        email, name, role_id, contact_number, institute_id, password,
+      },
       res
     );
     if (validation) {
@@ -135,6 +141,11 @@ const register = async (req, res) => {
           contact_number,
           role_id,
           institute_id,
+
+          semester_id,
+          department_id,
+          year_level
+
         });
         if (created) {
           const token = await jwt.sign(
@@ -179,6 +190,48 @@ const fetchEmailVerifyForRegisteration = async (req, res) => {
         res.status(200).json({
           status: true,
           message: "Now you can proceed.",
+        });
+      }
+
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const createSubscribePackage = async (req, res) => {
+  try {
+    const { user_id, subscription_id, amount, card_number, year, month, cv } = req.body;
+    const validation = validatorMethod({ user_id, subscription_id, amount, card_number, year, month, cv }, res);
+    if (validation) {
+      const find = await SubscriptionPlan.findOne({ subscription_id })
+      if (find) {
+        const created = await BuySubscription.create({
+          user_id,
+          subscription_id,
+        });
+        if (created) {
+          await walletHandler({
+            user_id,
+            transactionType: 'credit',
+            amount,
+          });
+          await walletHandler({
+            user_id,
+            transactionType: 'debit',
+            amount,
+            transaction_reason: `Your account has been debited as you have purchased a ${find?.month}-month subscription plan.`,
+          });
+        } else {
+          res.status(200).json({
+            status: false,
+            message: "Something went wrong when you buy subsription plan!",
+          });
+        }
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Subsciption plan not found!",
         });
       }
 
@@ -1337,6 +1390,7 @@ module.exports = {
   teacherSubjectList,
   // teacher profile
   fetchSubscriberList,
+  createSubscribePackage,
   // student
   createSubscribeSubjectForStudent,
   fetchTeacherSubjectFiles,

@@ -54,6 +54,18 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "inActive",
     },
+    semester_id: {
+      type: String,
+      trim: true,
+    },
+    department_id: {
+      type: String,
+      trim: true,
+    },
+    year_level: {
+      type: String,
+      trim: true,
+    },
     location: {
       type: {
         type: String,

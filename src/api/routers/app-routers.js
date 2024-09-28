@@ -33,7 +33,8 @@ const {
   fetchMessagesList,
   fetchInboxList,
   fetchUsers,
-  fetchEmailVerifyForRegisteration
+  fetchEmailVerifyForRegisteration,
+  createSubscribePackage
 } = require("../controllers/app");
 
 // Import middleware
@@ -45,6 +46,7 @@ const { fetchTeacherSubjectPage, fetchSubscriptionPlan } = require("../controlle
 router.post("/login", upload, login);
 router.post("/register", upload, register);
 router.post("/fetch_verify_email_for_registration", upload, fetchEmailVerifyForRegisteration);
+router.post("/create_subscribe_package", upload, createSubscribePackage);
 
 // Institute routes with authentication middleware
 router.post("/fetch_institute_list", upload, fetchInstituteList);
@@ -88,7 +90,6 @@ router.post(
 );
 router.post(
   "/fetch_department_list",
-  authAppMiddleware,
   upload,
   fetchDepartmentList
 );
