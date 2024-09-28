@@ -201,27 +201,39 @@ const fetchEmailVerifyForRegisteration = async (req, res) => {
 
 const createSubscribePackage = async (req, res) => {
   try {
-    const { user_id, subscription_id, amount, card_number, year, month, cv } = req.body;
-    const validation = validatorMethod({ user_id, subscription_id, amount, card_number, year, month, cv }, res);
+    const { user_id, subsrciption_plan_id, amount, card_number, year, month, cvv } = req.body;
+    const validation = validatorMethod({ user_id, subsrciption_plan_id, amount, card_number, year, month, cvv }, res);
     if (validation) {
-      const find = await SubscriptionPlan.findOne({ subscription_id })
+      const find = await SubscriptionPlan.findOne({ subsrciption_plan_id })
       if (find) {
         const created = await BuySubscription.create({
           user_id,
-          subscription_id,
+          subsrciption_plan_id,
         });
         if (created) {
-          await walletHandler({
+          const credit = await walletHandler({
             user_id,
             transactionType: 'credit',
             amount,
           });
-          await walletHandler({
-            user_id,
-            transactionType: 'debit',
-            amount,
-            transaction_reason: `Your account has been debited as you have purchased a ${find?.month}-month subscription plan.`,
-          });
+          if (credit?.status) {
+            const debit = await walletHandler({
+              user_id,
+              transactionType: 'debit',
+              amount,
+              transaction_reason: `Your account has been debited as you have purchased a ${find?.month}-month subscription plan.`,
+            });
+            if (debit?.status) {
+              res.status(200).json({
+                status: true,
+                message: `Your account has been debited as you have purchased a ${find?.month}-month subscription plan.`
+              });
+            } else {
+              res.status(200).json(credit);
+            }
+          } else {
+            res.status(200).json(credit);
+          }
         } else {
           res.status(200).json({
             status: false,
@@ -265,6 +277,7 @@ const teacherDashboard = async (req, res) => {
   try {
     const { institute_id } = req.body;
     const validation = validatorMethod({ institute_id }, res);
+
     if (validation) {
       const find = await Department.aggregate([
         {
@@ -274,40 +287,60 @@ const teacherDashboard = async (req, res) => {
         },
         {
           $addFields: {
-            department_id_str: { $toString: "$department_id" },
+            department_id_str: { $toString: "$department_id" }, // Convert department_id to string for lookup
           },
         },
         {
           $lookup: {
-            from: "subjects", // The collection to join with
-            localField: "department_id_str", // Field from Department, converted to string
-            foreignField: "department_id", // Field from Subjects, assumed to be string
-            as: "semester", // The name of the new array field to add to the result
+            from: "subjects", // Join with subjects collection
+            localField: "department_id_str", // Match by department_id string
+            foreignField: "department_id", // department_id in subjects
+            as: "semester", // Store the result in 'semester' field
+          },
+        },
+        {
+          $unwind: "$semester", // Unwind the semester array
+        },
+        {
+          $lookup: {
+            from: "app_users", // Join with users collection
+            localField: "semester.user_id", // Match by user_id in semester
+            foreignField: "user_id", // user_id in users collection
+            as: "user_info", // Store the result in 'user_info' field
+          },
+        },
+        {
+          $unwind: "$user_info", // Unwind the user_info array
+        },
+        {
+          $addFields: {
+            "semester.name": "$user_info.name", // Add user name to semester
+          },
+        },
+        {
+          $group: {
+            _id: "$_id", // Group back to the original department structure
+            department_id: { $first: "$department_id" },
+            institute_id: { $first: "$institute_id" },
+            department_name: { $first: "$department_name" }, // Add department details
+            created_at: { $first: "$created_at" }, // Add department details
+            updated_at: { $first: "$updated_at" }, // Add department details
+            department_id_str: { $first: "$department_id_str" },
+            semester: { $push: "$semester" }, // Rebuild the semester array
           },
         },
       ]);
 
-      if (find) {
-        const modifiedArray = await find.map((item, index) => {
-          return {
-            ...item,
-            semester: item.semester.map((e) => {
-              return {
-                ...e,
-                semester_name: getValueById(SEMESTERS, Number(e.semester_id)),
-              };
-            }),
-          };
-        });
+      if (find.length > 0) {
         res.status(200).json({
           status: true,
           message: "Department fetched successfully.",
-          data: modifiedArray,
+          data: find,
         });
       } else {
         res.status(200).json({
           status: false,
-          message: "Something went wrong!",
+          message: "No departments found for the given institute.",
         });
       }
     }
@@ -315,6 +348,7 @@ const teacherDashboard = async (req, res) => {
     catchErrorValidation(error, res);
   }
 };
+
 
 const fetchDepartmentList = async (req, res) => {
   try {

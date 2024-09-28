@@ -8,9 +8,9 @@ const buySubsciptionSchema = new mongoose.Schema(
             required: [true, "user_id is required"],
             trim: true,
         },
-        subscription_id: {
+        subsrciption_plan_id: {
             type: Number,
-            required: [true, "subscription_id is required"],
+            required: [true, "subsrciption_plan_id is required"],
             trim: true,
         }
     },
