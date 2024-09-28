@@ -164,6 +164,30 @@ const register = async (req, res) => {
   }
 };
 
+const fetchEmailVerifyForRegisteration = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const validation = validatorMethod({ email }, res);
+    if (validation) {
+      const find = await Users.findOne({ email });
+      if (find) {
+        res.status(200).json({
+          status: false,
+          message: "Please use a different email; this one is already in use.",
+        });
+      } else {
+        res.status(200).json({
+          status: true,
+          message: "Now you can proceed.",
+        });
+      }
+
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 const EditRiderCoordinates = async (req, res) => {
   try {
     const { user_id, latitude, longitude } = req.body;
@@ -1303,6 +1327,7 @@ module.exports = {
   // teacher
   login,
   register,
+  fetchEmailVerifyForRegisteration,
   fetchInstituteList,
   fetchDepartmentList,
   fetchSemesterList,

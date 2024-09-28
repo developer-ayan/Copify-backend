@@ -270,15 +270,19 @@ const catchErrorValidation = async (error, res) => {
     const errors = Object.values(error.errors).map((err) => err.message);
     return res.status(200).json({
       status: false,
-      message: errors?.[0] || "Something went wrong!",
-    });
-  } else {
-    return res.status(200).json({
-      status: false,
-      message: error?.message,
+      message: errors?.[0] || "Validation failed. Please check your input.",
     });
   }
+
+  // Optional: Log the error for debugging purposes
+  console.error("Error:", error);
+
+  return res.status(200).json({
+    status: false,
+    message: error?.message || "An unexpected error occurred. Please try again later.",
+  });
 };
+
 
 const generateClaimCode = (number, code) => {
   const prefix = code || "CDK";
