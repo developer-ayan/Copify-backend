@@ -321,6 +321,7 @@ const teacherDashboard = async (req, res) => {
           $group: {
             _id: "$_id", // Group back to the original department structure
             department_id: { $first: "$department_id" },
+            user_id: { $first: "$user_id" },
             institute_id: { $first: "$institute_id" },
             department_name: { $first: "$department_name" }, // Add department details
             created_at: { $first: "$created_at" }, // Add department details
@@ -332,10 +333,23 @@ const teacherDashboard = async (req, res) => {
       ]);
 
       if (find.length > 0) {
+
+        const modifiedArray = await find.map((item, index) => {
+          return {
+            ...item,
+            semester: item.semester.map((e) => {
+              return {
+                ...e,
+                semester_name: getValueById(SEMESTERS, Number(e.semester_id)),
+              };
+            }),
+          };
+        });
+
         res.status(200).json({
           status: true,
           message: "Department fetched successfully.",
-          data: find,
+          data: modifiedArray,
         });
       } else {
         res.status(200).json({
