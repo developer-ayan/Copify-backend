@@ -57,16 +57,25 @@ const {
   fetchTeacherSubjectPage,
   fetchTeacherSubjectFiles,
   deleteTeacherSubjectFiles,
-  fetchSubscriberList
+  fetchSubscriberList,
+  SearchStudent,
+  createBranch,
+  fetchBranchList,
+  editBranch,
+  deleteUser
 } = require("../controllers/admin");
 
 // Import middleware
 const { authAdminMiddleware } = require("../middlewares/authMiddleware");
-const { SendMessages, fetchInboxList, fetchMessagesList } = require("../controllers/app");
+const { SendMessages, fetchInboxList, fetchMessagesList, fetchSubscribeSubjectForStudent, fetchPlaceOrders } = require("../controllers/app");
 
 // Authentication routes
 router.post("/login", upload, login);
 router.post("/register", upload, register);
+router.post("/create_branch", upload, createBranch);
+router.post("/edit_branch", upload, editBranch);
+router.post("/fetch_branch_list", authAdminMiddleware, upload, fetchBranchList);
+router.post("/delete_user", authAdminMiddleware, upload, deleteUser);
 
 // Institute routes with authentication middleware
 router.post("/create_institute", authAdminMiddleware, upload, createInstitute);
@@ -268,6 +277,22 @@ router.post(
   upload,
   fetchSubscriberList
 );
+
+// student dashboard routes with authentication middleware
+router.post(
+  "/search_student",
+  authAdminMiddleware,
+  upload,
+  SearchStudent
+);
+router.post(
+  "/fetch_subscribe_subject_for_student",
+  authAdminMiddleware,
+  upload,
+  fetchSubscribeSubjectForStudent
+);
+router.post("/fetch_place_orders", authAdminMiddleware, upload, fetchPlaceOrders);
+
 
 router.post(
   "/send_message",

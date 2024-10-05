@@ -66,6 +66,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    branch_address: {
+      type: String,
+      trim: true,
+    },
     location: {
       type: {
         type: String,

@@ -30,7 +30,7 @@ const login = async (req, res) => {
     const validation = validatorMethod({ email, password }, res);
 
     if (validation) {
-      const find = await Users.findOne({ email, role_id: { $in: [1, 2] } });
+      const find = await Users.findOne({ email, role_id: { $in: [1, 2, 3, 4] } });
 
       if (!find) {
         return res.status(200).json({
@@ -113,6 +113,103 @@ const register = async (req, res) => {
           });
         }
       }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const createBranch = async (req, res) => {
+  try {
+    const { email, password, name, role_id, branch_address } = req.body;
+    const validation = validatorMethod({ email, name, password, role_id, branch_address }, res);
+    if (validation) {
+      const find = await Users.findOne({ email });
+      if (find) {
+        res.status(200).json({
+          status: false,
+          message:
+            "An account with this email address is already registered. Please use a different email address to register a new account.",
+        });
+      } else {
+        const created = await Users.create({
+          email,
+          password,
+          name,
+          role_id,
+          branch_address
+        });
+        if (created) {
+          const token = await jwt.sign(
+            { user_id: created.user_id, email: created.email },
+            secret_key
+          );
+          created.token = token;
+          await created.save();
+          res.status(200).json({
+            status: true,
+            message: "Branch has been created.",
+          });
+        } else {
+          res.status(200).json({
+            status: false,
+            message: "Something went wrong!",
+          });
+        }
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const editBranch = async (req, res) => {
+  try {
+    const { user_id, name, email, password, branch_address } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+    if (validation) {
+      // Update the document by ID
+      const updated = await Users.findOne({ user_id });
+      updated.name = name || updated.name;
+      updated.password = password || updated.password;
+      updated.branch_address = branch_address || updated.branch_address;
+      await updated.save();
+      res.status(200).json({
+        status: true,
+        message: "Branch update successfully.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchBranchList = async (req, res) => {
+  try {
+    const find = await Users.find({ role_id: "2", account_status: "active" }).lean()
+    const modifiedArray = find?.map((item, index) => {
+      return { ...item, branch_id: item.user_id }
+    })
+    res.status(200).json({
+      status: true,
+      message: "Branch fetch successfully.",
+      data: modifiedArray,
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const deleteUser = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+    if (validation) {
+      const deleted = await Users.findOneAndDelete({ user_id });
+      res.status(200).json({
+        status: true,
+        message: "Branch delete successfully.",
+      });
     }
   } catch (error) {
     catchErrorValidation(error, res);
@@ -1298,59 +1395,95 @@ const fetchSubscriberList = async (req, res) => {
   }
 };
 
+
 const SearchTeacher = async (req, res) => {
   try {
     const { search } = req.body;
 
-    if (search) {
-      // Constructing regex based on the input
-      const regex = new RegExp(search, "i") || null;
+    // Constructing regex based on the input
+    const regex = search ? new RegExp(search, "i") : null;
 
-      // Build the $match object to search in both fields
-      const matchCriteria = {
+    // Build the $match object to ensure role_id is 3 and apply search if available
+    const matchCriteria = {
+      role_id: "4", // Only users with role_id 3
+      ...(regex ? {
         $or: [
           { name: { $regex: regex } },
           { email: { $regex: regex } },
-          { role_id: 4 },
         ],
-      };
-      const find = await Users.aggregate([
-        {
-          $match: matchCriteria,
-        },
-      ]);
-      const modifiedArray = await find.map((item, index) => {
-        return { ...item, claim_number: generateClaimCode(item.user_id) }
-      })
-      if (find) {
-        res.status(200).json({
-          status: true,
-          message: "Teacher fetched successfully.",
-          data: modifiedArray,
-        });
-      } else {
-        res.status(200).json({
-          status: true,
-          message: "Teacher fetched successfully.",
-          data: [],
-        });
-      }
-    } else {
-      const find = await Institute.find({});
-      res.status(200).json({
-        status: true,
-        message: "Institute fetch successfully.",
-        data: find,
-      });
-    }
+      } : {}),
+    };
+
+    const find = await Users.aggregate([
+      {
+        $match: matchCriteria,
+      },
+    ]);
+
+    // If users are found, modify the array
+    const modifiedArray = find.map((item) => ({
+      ...item,
+      claim_number: generateClaimCode(item.user_id),
+    }));
+
+    res.status(200).json({
+      status: true,
+      message: "Students fetched successfully.",
+      data: modifiedArray.length > 0 ? modifiedArray : [],
+    });
   } catch (error) {
     catchErrorValidation(error, res);
   }
 };
 
+const SearchStudent = async (req, res) => {
+  try {
+    const { search } = req.body;
+
+    // Constructing regex based on the input
+    const regex = search ? new RegExp(search, "i") : null;
+
+    // Build the $match object to ensure role_id is 3 and apply search if available
+    const matchCriteria = {
+      role_id: "3", // Only users with role_id 3
+      ...(regex ? {
+        $or: [
+          { name: { $regex: regex } },
+          { email: { $regex: regex } },
+        ],
+      } : {}),
+    };
+
+    const find = await Users.aggregate([
+      {
+        $match: matchCriteria,
+      },
+    ]);
+
+    // If users are found, modify the array
+    const modifiedArray = find.map((item) => ({
+      ...item,
+      claim_number: generateClaimCode(item.user_id),
+    }));
+
+    res.status(200).json({
+      status: true,
+      message: "Students fetched successfully.",
+      data: modifiedArray.length > 0 ? modifiedArray : [],
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+
 module.exports = {
   login,
   register,
+  createBranch,
+  editBranch,
+  deleteUser,
+  fetchBranchList,
   fetchInstituteList,
   createInstitute,
   editInstitute,
@@ -1397,6 +1530,7 @@ module.exports = {
   deleteSubscriptionPlan,
   fetchSubscriptionPlan,
   SearchTeacher,
+  SearchStudent,
   fetchTeacherSubjectPage,
   fetchTeacherSubjectFiles,
   deleteTeacherSubjectFiles,

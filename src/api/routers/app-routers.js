@@ -34,13 +34,14 @@ const {
   fetchInboxList,
   fetchUsers,
   fetchEmailVerifyForRegisteration,
-  createSubscribePackage
+  createSubscribePackage,
+  fetchSubscribeSubjectForStudent
 } = require("../controllers/app");
 
 // Import middleware
 const { authAppMiddleware } = require("../middlewares/authMiddleware");
 const fileUpload = require("../../config/file-folder-check");
-const { fetchTeacherSubjectPage, fetchSubscriptionPlan } = require("../controllers/admin");
+const { fetchTeacherSubjectPage, fetchSubscriptionPlan, fetchBranchList } = require("../controllers/admin");
 
 // Authentication routes
 router.post("/login", upload, login);
@@ -131,6 +132,12 @@ router.post(
   upload,
   createSubscribeSubjectForStudent
 );
+router.post(
+  "/fetch_subscribe_subject_for_student",
+  authAppMiddleware,
+  upload,
+  fetchSubscribeSubjectForStudent
+);
 
 // Common routes with authentication middleware
 router.post(
@@ -160,6 +167,7 @@ router.post("/fetch_transaction_list", authAppMiddleware, upload, fetchTransacti
 router.post("/create_place_order", authAppMiddleware, upload, createPlaceOrder);
 router.post("/fetch_order_list", authAppMiddleware, upload, fetchOrderList);
 router.post("/fetch_users_list", authAppMiddleware, upload, fetchUsers);
+router.post("/fetch_branch_list", authAppMiddleware, upload, fetchBranchList);
 
 // subscription
 router.post(
@@ -167,6 +175,7 @@ router.post(
   upload,
   fetchSubscriptionPlan
 );
+
 
 // rider
 router.post(

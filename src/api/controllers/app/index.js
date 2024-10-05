@@ -277,6 +277,7 @@ const teacherDashboard = async (req, res) => {
   try {
     const { institute_id } = req.body;
     const validation = validatorMethod({ institute_id }, res);
+    const institute_detail = await Institute.findOne({ institute_id })
 
     if (validation) {
       const find = await Department.aggregate([
@@ -350,6 +351,7 @@ const teacherDashboard = async (req, res) => {
           status: true,
           message: "Department fetched successfully.",
           data: modifiedArray,
+          institute_detail
         });
       } else {
         res.status(200).json({
@@ -545,6 +547,43 @@ const fetchSubscriberList = async (req, res) => {
         status: true,
         message: "Subscribers fetched successfully.",
         data: modifiedArray, // Safeguard against empty result
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchSubscriberedList = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+    if (validation) {
+      const find = await Subscribes.aggregate([
+        {
+          $match: {
+            user_id: Number(user_id), // Match documents based on teacher_id
+          },
+        },
+        {
+          $lookup: {
+            from: "subjects", // Collection to join with
+            localField: "subject_id", // Field from Subscribes
+            foreignField: "subject_id", // Field from app_users
+            as: "students", // New array field to add
+          },
+        }
+      ]);
+
+      res.status(200).json({
+        status: true,
+        message: "Subscribers fetched successfully.",
+        data: find, // Safeguard against empty result
       });
     } else {
       res.status(200).json({
@@ -793,6 +832,45 @@ const createSubscribeSubjectForStudent = async (req, res) => {
     catchErrorValidation(error, res);
   }
 };
+
+const fetchSubscribeSubjectForStudent = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+    if (validation) {
+      const find = await Subscribes.find({ user_id }).lean()
+
+      if (find) {
+        // Create an array of promises to fetch subject details
+        const modifiedArray = await Promise.all(
+          find.map(async (item) => {
+            const subject = await Subject.findOne({
+              subject_id: item.subject_id,
+            });
+            return {
+              ...item,
+              subject_name: `${subject?.subject_description + subject.subject_code} - Section ${subject.section}`,
+            };
+          })
+        );
+
+        res.status(200).json({
+          status: true,
+          message: "Subscribe subject fetch successfully.",
+          data: modifiedArray,
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 
 const fetchCartSubjectFileList = async (req, res) => {
   try {
@@ -1420,6 +1498,51 @@ const fetchInboxList = async (req, res) => {
   }
 };
 
+const fetchPlaceOrders = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+    if (validation) {
+      const find = await Order.find({ user_id }).lean();
+      const modifiedArray = await Promise.all(
+        find.map(async (item) => {
+          const subjectFileIds = JSON.parse(item.subject_file_ids);
+          const subjectFiles = await SubjectFiles.find({
+            subject_file_id: { $in: subjectFileIds },
+          });
+
+          // Ab async map ke liye Promise.all use karein
+          const subjectFilesWithSubjectData = await Promise.all(
+            subjectFiles.map(async (subjectFile) => {
+              const findSubject = await Subject.findOne({
+                subject_id: subjectFile.subject_id,
+              });
+
+              return { ...subjectFile._doc, subject_name: `${findSubject?.subject_description + findSubject.subject_code} - Section ${findSubject.section}` }; // subjectFile ka data return karein with subject details
+            })
+          );
+
+          return {
+            ...item,
+            subject_files: subjectFilesWithSubjectData
+          }; // Return updated item with subject data
+        })
+      );
+      res.status(200).json({
+        status: true,
+        message: "Order fetch successfully.",
+        data: modifiedArray,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
 
 
 
@@ -1438,9 +1561,11 @@ module.exports = {
   teacherSubjectList,
   // teacher profile
   fetchSubscriberList,
+  fetchSubscriberedList,
   createSubscribePackage,
   // student
   createSubscribeSubjectForStudent,
+  fetchSubscribeSubjectForStudent,
   fetchTeacherSubjectFiles,
   deleteTeacherSubjectFiles,
   // common
@@ -1459,6 +1584,7 @@ module.exports = {
   fetchMessagesList,
   fetchInboxList,
   fetchUsers,
+  fetchPlaceOrders,
   //rider
   EditRiderCoordinates,
 };
