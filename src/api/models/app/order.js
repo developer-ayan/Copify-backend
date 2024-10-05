@@ -20,9 +20,13 @@ const orderSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
-        shop_id: {
+        branch_id: {
             type: String,
             trim: true,
+        },
+        priority: {
+            type: Boolean,
+            default: false
         },
         subject_file_ids: {
             type: String,

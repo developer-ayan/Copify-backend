@@ -275,7 +275,7 @@ const EditRiderCoordinates = async (req, res) => {
 
 const teacherDashboard = async (req, res) => {
   try {
-    const { institute_id } = req.body;
+    const { institute_id, user_id } = req.body;
     const validation = validatorMethod({ institute_id }, res);
     const institute_detail = await Institute.findOne({ institute_id })
 
@@ -335,17 +335,23 @@ const teacherDashboard = async (req, res) => {
 
       if (find.length > 0) {
 
-        const modifiedArray = await find.map((item, index) => {
+        const modifiedArray = await Promise.all(find.map(async (item, index) => {
           return {
             ...item,
-            semester: item.semester.map((e) => {
+            semester: await Promise.all(item.semester.map(async (e) => {
+              const findSubscribers = await Subscribes.findOne({
+                user_id: user_id,
+                subject_id: e.subject_id
+              });
+
               return {
                 ...e,
                 semester_name: getValueById(SEMESTERS, Number(e.semester_id)),
+                is_subscribed: findSubscribers?.user_id ? true : false
               };
-            }),
+            })),
           };
-        });
+        }));
 
         res.status(200).json({
           status: true,
@@ -1212,11 +1218,12 @@ const createPlaceOrder = async (req, res) => {
       subject_file_ids,
       self_pickup,
       address_id,
-      shop_id,
       rider_charges,
       sub_total,
       total_price,
-      transaction_type
+      transaction_type,
+      branch_id,
+      priority
     } = req.body;
     const validation = validatorMethod({
       user_id,
@@ -1250,11 +1257,12 @@ const createPlaceOrder = async (req, res) => {
               self_pickup,
               address_id,
               order_status: "pending",
-              shop_id,
+              branch_id,
               rider_charges,
               sub_total,
               total_price,
-              transaction_id: response?.data?.transaction_id
+              transaction_id: response?.data?.transaction_id,
+              priority
             });
             if (created) {
               res.status(200).json({
