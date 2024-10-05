@@ -35,7 +35,13 @@ const {
   fetchUsers,
   fetchEmailVerifyForRegisteration,
   createSubscribePackage,
-  fetchSubscribeSubjectForStudent
+  fetchSubscribeSubjectForStudent,
+  createRider,
+  fetchRiderStatus,
+  fetchActivationTime,
+  editActivationTime,
+  fetchRiderDashboard,
+  fetchOrderDetail
 } = require("../controllers/app");
 
 // Import middleware
@@ -183,6 +189,42 @@ router.post(
   authAppMiddleware,
   upload,
   EditRiderCoordinates
+);
+router.post(
+  "/edit_rider_status",
+  authAppMiddleware,
+  upload,
+  createRider
+);
+router.post(
+  "/fetch_rider_status",
+  authAppMiddleware,
+  upload,
+  fetchRiderStatus
+);
+router.post(
+  "/fetch_rider_activation_time",
+  authAppMiddleware,
+  upload,
+  fetchActivationTime
+);
+router.post(
+  "/edit_rider_activation_time",
+  authAppMiddleware,
+  upload,
+  editActivationTime
+);
+router.post(
+  "/rider_dashboard",
+  authAppMiddleware,
+  upload,
+  fetchRiderDashboard
+);
+router.post(
+  "/rider_order_detail",
+  authAppMiddleware,
+  upload,
+  fetchOrderDetail
 );
 
 module.exports = router;

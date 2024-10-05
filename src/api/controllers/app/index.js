@@ -13,7 +13,7 @@ const {
   walletHandler,
   generateChatRoomId,
 } = require("../../../utils/helpers");
-const { secret_key, SEMESTERS } = require("../../../utils/static-values");
+const { secret_key, SEMESTERS, riderAccountStatus, activation_array } = require("../../../utils/static-values");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const Institute = require("../../models/common/institute");
@@ -34,6 +34,7 @@ const Order = require("../../models/app/order");
 const Chat = require("../../models/common/chat");
 const BuySubscription = require("../../models/app/buy-subscription");
 const SubscriptionPlan = require("../../models/common/subscription-plans");
+const RiderActivation = require("../../models/app/rider-activation");
 
 const fetchInstituteList = async (req, res) => {
   try {
@@ -1552,6 +1553,248 @@ const fetchPlaceOrders = async (req, res) => {
   }
 };
 
+const createRider = async (req, res) => {
+  try {
+    const { rider_status_for_student, user_id } = req.body;
+    const validation = validatorMethod({ rider_status_for_student }, res);
+
+    if (validation) {
+      const find = await Users.findOne({ user_id });
+      find.rider_status_for_student = rider_status_for_student || find.rider_status_for_student
+      await find.save()
+      if (find) {
+        const messageHandler = () => {
+          if (rider_status_for_student == riderAccountStatus.apply) {
+            return "Your request has been sent to the admin."
+          } else if (rider_status_for_student == riderAccountStatus.activate) {
+            return "Rider accound has been activate"
+          } else if (rider_status_for_student == riderAccountStatus.de_activate) {
+            return "Rider accound has been de-activate"
+          } else if (rider_status_for_student == riderAccountStatus.blocked) {
+            return "Rider accound blocked"
+          }
+        }
+        return res.status(200).json({
+          status: true,
+          message: messageHandler(),
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+
+const fetchRiderStatus = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+
+    if (validation) {
+      const find = await Users.findOne({ user_id });
+      if (find) {
+        return res.status(200).json({
+          status: true,
+          data: {
+            rider_status: find?.rider_status_for_student
+          },
+          message: "",
+        });
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Something went wrong!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchActivationTime = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+
+    if (validation) {
+      const find = await RiderActivation.findOne({ user_id }).lean()
+      if (find) {
+        return res.status(200).json({
+          status: true,
+          data: JSON.parse(find.activation_time),
+          message: "Fetch activation successfully.",
+        });
+
+      } else {
+        console.log(JSON.stringify(activation_array))
+        const created = await RiderActivation.create({ user_id, activation_time: JSON.stringify(activation_array) });
+        if (created) {
+          return res.status(200).json({
+            status: true,
+            data: activation_array
+          });
+        } else {
+          res.status(200).json({
+            status: false,
+            message: "Something went wrong!",
+          });
+        }
+
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+const editActivationTime = async (req, res) => {
+  try {
+    const { user_id, activation_time } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+
+
+    if (validation) {
+      const find = await RiderActivation.findOne({ user_id });
+      if (find) {
+        find.activation_time = activation_time || find.activation_time;
+        await find.save(); // Save the updated document
+
+        return res.status(200).json({
+          status: true,
+          data: find,
+        });
+      } else {
+        return res.status(200).json({
+          status: false,
+          message: "Rider not found!",
+        });
+      }
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchRiderDashboard = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+    if (validation) {
+      const find = await Order.find({ rider_id: user_id }).sort({ created_at: -1 }).lean();
+      const modifiedArray = find?.map((item, index) => {
+        return { ...item, claim_code: generateClaimCode(item.user_id), generate_order_id: generateClaimCode(item.order_id, 'ORD#') }
+      })
+      res.status(200).json({
+        status: true,
+        message: "Order fetch successfully.",
+        data: modifiedArray,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchOrderDetail = async (req, res) => {
+  try {
+    const { order_id } = req.body;
+    const validation = validatorMethod({ order_id }, res);
+
+    if (validation) {
+      const find = await Order.aggregate([
+        {
+          $match: { order_id: Number(order_id) } // Find the order by order_id
+        },
+        {
+          $lookup: {
+            from: "app_users", // The collection you're joining (app_users)
+            let: { user_id: "$user_id" }, // Reference to the user_id in the Order collection
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: [{ $toString: "$user_id" }, "$$user_id"] } // Convert app_users.user_id to string for comparison
+                }
+              }
+            ],
+            as: "user_detail" // The name for the result of the joined data
+          }
+        },
+        {
+          $unwind: {
+            path: "$user_detail",
+            preserveNullAndEmptyArrays: true // This will allow it to continue if the field is not an array or is null
+          }
+        },
+        {
+          $lookup: {
+            from: "addresses", // The collection you're joining (addresses)
+            let: { user_id: "$user_id", address_id: "$address_id" }, // Reference to the user_id and address_id in the Order collection
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: [{ $toString: "$user_id" }, "$$user_id"] }, // Convert addresses.user_id to string for comparison with order's user_id
+                      { $eq: [{ $toString: "$address_id" }, "$$address_id"] } // Ensure address_id from Order matches address_id in addresses
+                    ]
+                  }
+                }
+              }
+            ],
+            as: "address" // The name for the result of the joined data
+          }
+        },
+        {
+          $unwind: {
+            path: "$address",
+            preserveNullAndEmptyArrays: true // This will allow it to continue if the field is not an array or is null
+          }
+        },
+      ])
+
+      // Check if an order was found
+      if (find.length === 0) {
+        return res.status(404).json({
+          status: false,
+          message: "Order not found.",
+        });
+      }
+
+      // Fetch associated subject files
+      const findFiles = await SubjectFiles.find({
+        subject_file_id: { $in: JSON.parse(find[0]?.subject_file_ids || '[]') }, // Fallback to an empty array if not found
+      });
+
+      // Return both order details and associated files
+      res.status(200).json({
+        status: true,
+        message: "Order fetch successfully.",
+        data: {
+          order: find[0], // The order details
+          subjectFiles: findFiles // The associated subject files
+        },
+      });
+    } else {
+      res.status(400).json({ // Changed status to 400 for validation errors
+        status: false,
+        message: "Invalid order ID.",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
 
 
 
@@ -1595,4 +1838,10 @@ module.exports = {
   fetchPlaceOrders,
   //rider
   EditRiderCoordinates,
+  createRider,
+  fetchRiderStatus,
+  fetchActivationTime,
+  editActivationTime,
+  fetchRiderDashboard,
+  fetchOrderDetail
 };

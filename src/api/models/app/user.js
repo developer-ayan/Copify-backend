@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcrypt");
+const { riderAccountStatus } = require("../../../utils/static-values");
 const AutoIncrement = require("mongoose-sequence")(mongoose);
 
 const userSchema = new mongoose.Schema(
@@ -52,7 +53,7 @@ const userSchema = new mongoose.Schema(
     },
     rider_status_for_student: {
       type: String,
-      default: "inActive",
+      default: riderAccountStatus.de_activate,
     },
     semester_id: {
       type: String,
