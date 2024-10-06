@@ -41,7 +41,8 @@ const {
   fetchActivationTime,
   editActivationTime,
   fetchRiderDashboard,
-  fetchOrderDetail
+  fetchOrderDetail,
+  editOrderStatus
 } = require("../controllers/app");
 
 // Import middleware
@@ -225,6 +226,12 @@ router.post(
   authAppMiddleware,
   upload,
   fetchOrderDetail
+);
+router.post(
+  "/edit_order_status",
+  authAppMiddleware,
+  upload,
+  editOrderStatus
 );
 
 module.exports = router;

@@ -13,7 +13,7 @@ const {
   walletHandler,
   generateChatRoomId,
 } = require("../../../utils/helpers");
-const { secret_key, SEMESTERS, riderAccountStatus, activation_array } = require("../../../utils/static-values");
+const { secret_key, SEMESTERS, riderAccountStatus, activation_array, orderStatus } = require("../../../utils/static-values");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const Institute = require("../../models/common/institute");
@@ -332,6 +332,11 @@ const teacherDashboard = async (req, res) => {
             semester: { $push: "$semester" }, // Rebuild the semester array
           },
         },
+        {
+          $sort: {
+            created_at: -1 // Sort by created_at descending, so newer departments come first
+          }
+        }
       ]);
 
       if (find.length > 0) {
@@ -1070,6 +1075,7 @@ const fetchUsers = async (req, res) => {
 };
 
 
+
 const fetchRiderDropDown = async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
@@ -1092,7 +1098,7 @@ const fetchRiderDropDown = async (req, res) => {
             spherical: true,
             query: {
               role_id: '3',
-              rider_status_for_student: 'active'
+              rider_status_for_student: riderAccountStatus?.activate
             }
           }
         }
@@ -1293,7 +1299,7 @@ const createPlaceOrder = async (req, res) => {
     }
 
     if (validation) {
-
+      const response = await walletHandler({ user_id, transactionType: 'debit', amount: total_price, transaction_reason: "You have placed the order. This is the amount that has been debited." })
       const created = await Order.create({
         user_id,
         rider_id,
@@ -1301,10 +1307,12 @@ const createPlaceOrder = async (req, res) => {
         self_pickup,
         address_id,
         order_status: "pending",
-        shop_id,
+        branch_id,
         rider_charges,
         sub_total,
-        total_price
+        total_price,
+        transaction_id: response?.data?.transaction_id,
+        priority
       });
       if (created) {
         res.status(200).json({
@@ -1683,18 +1691,36 @@ const editActivationTime = async (req, res) => {
 
 const fetchRiderDashboard = async (req, res) => {
   try {
-    const { user_id } = req.body;
+    const { user_id, is_complete } = req.body;
     const validation = validatorMethod({ user_id }, res);
     if (validation) {
-      const find = await Order.find({ rider_id: user_id }).sort({ created_at: -1 }).lean();
-      const modifiedArray = find?.map((item, index) => {
-        return { ...item, claim_code: generateClaimCode(item.user_id), generate_order_id: generateClaimCode(item.order_id, 'ORD#') }
-      })
-      res.status(200).json({
-        status: true,
-        message: "Order fetch successfully.",
-        data: modifiedArray,
-      });
+      if (is_complete) {
+        const find = await Order.find({
+          rider_id: user_id,
+          order_status: orderStatus.completed
+        }).sort({ created_at: -1 }).lean();
+        const modifiedArray = find?.map((item, index) => {
+          return { ...item, claim_code: generateClaimCode(item.user_id), generate_order_id: generateClaimCode(item.order_id, 'ORD#') }
+        })
+        res.status(200).json({
+          status: true,
+          message: "Order fetch successfully.",
+          data: modifiedArray,
+        });
+      } else {
+        const find = await Order.find({
+          rider_id: user_id,
+          order_status: { $ne: orderStatus.completed }
+        }).sort({ created_at: -1 }).lean();
+        const modifiedArray = find?.map((item, index) => {
+          return { ...item, claim_code: generateClaimCode(item.user_id), generate_order_id: generateClaimCode(item.order_id, 'ORD#') }
+        })
+        res.status(200).json({
+          status: true,
+          message: "Order fetch successfully.",
+          data: modifiedArray,
+        });
+      }
     } else {
       res.status(200).json({
         status: false,
@@ -1765,7 +1791,7 @@ const fetchOrderDetail = async (req, res) => {
 
       // Check if an order was found
       if (find.length === 0) {
-        return res.status(404).json({
+        return res.status(200).json({
           status: false,
           message: "Order not found.",
         });
@@ -1786,9 +1812,9 @@ const fetchOrderDetail = async (req, res) => {
         },
       });
     } else {
-      res.status(400).json({ // Changed status to 400 for validation errors
+      res.status(200).json({
         status: false,
-        message: "Invalid order ID.",
+        message: "Something went wrong!",
       });
     }
   } catch (error) {
@@ -1796,6 +1822,43 @@ const fetchOrderDetail = async (req, res) => {
   }
 };
 
+const editOrderStatus = async (req, res) => {
+  try {
+    const { order_id, order_status } = req.body;
+    const validation = validatorMethod({ order_id, order_status }, res);
+
+    if (validation) {
+      const find = await Order.findOne({ order_id })
+      find.order_status = order_status || find.order_status
+      if (find?.rider_id && find.order_status == orderStatus.completed) {
+        await walletHandler({
+          user_id: find?.rider_id,
+          transactionType: 'credit',
+          amount,
+          transaction_reason: `You have completed the order; ${find.rider_charges} PHP is being sent to your wallet.`,
+        });
+      }
+      await find.save()
+      // Check if an order was found
+      if (find) {
+        sendNotification(find?.user_id, "Order Status", `Your order status is ${find.order_status}.`)
+        return res.status(200).json({
+          status: true,
+          message: "Order status update successfully.",
+        });
+
+
+      }
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
 
 
 module.exports = {
@@ -1843,5 +1906,6 @@ module.exports = {
   fetchActivationTime,
   editActivationTime,
   fetchRiderDashboard,
-  fetchOrderDetail
+  fetchOrderDetail,
+  editOrderStatus
 };

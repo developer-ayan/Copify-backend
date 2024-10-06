@@ -9,7 +9,7 @@ const app = express();
 const port = process.env.PORT || 3002;
 
 app.use(express.json());
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors({ origin: 'http://51.20.41.99/' }));
 app.use(express.static('public'))
 
 const authRoutes = require('./src/api/routers/auth-routers');

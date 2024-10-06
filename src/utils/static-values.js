@@ -218,6 +218,14 @@ const activation_array = [
   }
 ]
 
+const orderStatus = {
+  pending: "pending",
+  in_process: "in process",
+  printing: "printing",
+  ready_to_delivery: "ready to deliver",
+  completed: "completed"
+}
+
 const riderAccountStatus = {
   activate: "activate",
   de_activate: "de-activate",
@@ -225,4 +233,4 @@ const riderAccountStatus = {
   apply: "apply"
 }
 
-module.exports = { created_at, database_name, secret_key, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, SEMESTERS, riderAccountStatus, activation_array };
+module.exports = { created_at, database_name, secret_key, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, SEMESTERS, riderAccountStatus, activation_array, orderStatus };
