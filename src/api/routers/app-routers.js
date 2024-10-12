@@ -42,13 +42,15 @@ const {
   editActivationTime,
   fetchRiderDashboard,
   fetchOrderDetail,
-  editOrderStatus
+  editOrderStatus,
+  fetchRiderRadius,
+  deleteTeacherSubject
 } = require("../controllers/app");
 
 // Import middleware
 const { authAppMiddleware } = require("../middlewares/authMiddleware");
 const fileUpload = require("../../config/file-folder-check");
-const { fetchTeacherSubjectPage, fetchSubscriptionPlan, fetchBranchList } = require("../controllers/admin");
+const { fetchTeacherSubjectPage, fetchSubscriptionPlan, fetchBranchList, fetchPromoCode } = require("../controllers/admin");
 
 // Authentication routes
 router.post("/login", upload, login);
@@ -72,6 +74,12 @@ router.post(
   authAppMiddleware,
   fileUpload,
   createSubjectFile
+);
+router.post(
+  "/delete_subject",
+  authAppMiddleware,
+  fileUpload,
+  deleteTeacherSubject
 );
 router.post(
   "/fetch_teacher_subject_list",
@@ -232,6 +240,18 @@ router.post(
   authAppMiddleware,
   upload,
   editOrderStatus
+);
+router.post(
+  "/fetch_rider_radius",
+  authAppMiddleware,
+  upload,
+  fetchRiderRadius
+);
+router.post(
+  "/fetch_promo_code",
+  authAppMiddleware,
+  upload,
+  fetchPromoCode
 );
 
 module.exports = router;

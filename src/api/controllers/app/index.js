@@ -12,6 +12,7 @@ const {
   generateTransactionId,
   walletHandler,
   generateChatRoomId,
+  wrongValueCheck,
 } = require("../../../utils/helpers");
 const { secret_key, SEMESTERS, riderAccountStatus, activation_array, orderStatus } = require("../../../utils/static-values");
 const jwt = require("jsonwebtoken");
@@ -317,6 +318,7 @@ const teacherDashboard = async (req, res) => {
         {
           $addFields: {
             "semester.name": "$user_info.name", // Add user name to semester
+            "semester.department_name": "$department_name", // Add user name to semester
           },
         },
         {
@@ -443,49 +445,68 @@ const createTeacherPage = async (req, res) => {
       semester_id,
       year,
       no_of_enrolled,
+      subject_id,
+      subject_edit
     } = req.body;
-    const validation = validatorMethod(
-      {
-        user_id,
-        department_id,
-        section,
-        subject_code,
-        subject_description,
-        semester_id,
-        year,
-        no_of_enrolled,
-      },
-      res
-    );
-    if (validation) {
-      const created = await Subject.create({
-        user_id,
-        department_id,
-        section,
-        subject_code,
-        subject_description,
-        semester_id,
-        year,
-        no_of_enrolled,
+    if (subject_edit == "true") {
+      const updated = await Subject.findOne({ subject_id });
+      updated.department_id = department_id || updated.department_id;
+      updated.section = section || updated.section;
+      updated.subject_code = subject_code || updated.subject_code;
+      updated.semester_id = semester_id || updated.semester_id;
+      updated.year = year || updated.semester_id;
+      updated.no_of_enrolled = no_of_enrolled || updated.no_of_enrolled;
+      await updated.save()
+      res.status(200).json({
+        status: true,
+        message: "Subject update successfully.",
+        data: updated,
       });
-      sendNotification(
-        user_id,
-        "Page alert",
-        `You have created the subject page ${subject_description}.`
+    } else {
+      const validation = validatorMethod(
+        {
+          user_id,
+          department_id,
+          section,
+          subject_code,
+          subject_description,
+          semester_id,
+          year,
+          no_of_enrolled,
+        },
+        res
       );
-      if (created) {
-        res.status(200).json({
-          status: true,
-          message: "Subject create successfully.",
-          data: created,
+      if (validation) {
+        const created = await Subject.create({
+          user_id,
+          department_id,
+          section,
+          subject_code,
+          subject_description,
+          semester_id,
+          year,
+          no_of_enrolled,
         });
-      } else {
-        res.status(200).json({
-          status: false,
-          message: "Something went wrong!",
-        });
+        sendNotification(
+          user_id,
+          "Page alert",
+          `You have created the subject page ${subject_description}.`
+        );
+        if (created) {
+          res.status(200).json({
+            status: true,
+            message: "Subject create successfully.",
+            data: created,
+          });
+        } else {
+          res.status(200).json({
+            status: false,
+            message: "Something went wrong!",
+          });
+        }
       }
     }
+
   } catch (error) {
     catchErrorValidation(error, res);
   }
@@ -683,6 +704,31 @@ const createSubjectFile = async (req, res) => {
     } else {
       req.file && delete_file("uploads/", req.file.location);
       // delete_file("/uploads/country_images/", countryCode.country_image);
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const deleteTeacherSubject = async (req, res) => {
+  try {
+    const { subject_id } = req.body;
+    const validation = validatorMethod({ subject_id }, res);
+    if (validation) {
+      const find = await SubjectFiles.find({ subject_id })
+      if (find.length > 0) {
+        res.status(200).json({
+          status: false,
+          message: "In this subject, you already have a file associated, which is why you cannot delete it.",
+        });
+      } else {
+        const deleted = await Subject.findOneAndDelete({ subject_id });
+        res.status(200).json({
+          status: true,
+          message: "Subject delete successfully.",
+        });
+      }
+
     }
   } catch (error) {
     catchErrorValidation(error, res);
@@ -1860,6 +1906,28 @@ const editOrderStatus = async (req, res) => {
   }
 };
 
+const fetchRiderRadius = async (req, res) => {
+  try {
+    const { rider_id } = req.body;
+    const validation = validatorMethod({ rider_id }, res);
+    if (validation) {
+      const find = await Users.findOne({ user_id: rider_id });
+      res.status(200).json({
+        status: true,
+        message: "Rider radius fetch successfully.",
+        data: find,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 
 module.exports = {
   // teacher
@@ -1907,5 +1975,7 @@ module.exports = {
   editActivationTime,
   fetchRiderDashboard,
   fetchOrderDetail,
-  editOrderStatus
+  editOrderStatus,
+  fetchRiderRadius,
+  deleteTeacherSubject
 };

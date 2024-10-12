@@ -11,6 +11,12 @@ const secret_key =
 const AWS_ACCESS_KEY_ID = 'AKIA6ODU4IRO4U3AUR4O'
 const AWS_SECRET_ACCESS_KEY = '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'
 
+const date_formate = "DD/MM/YYYY"
+
+const displayDate = (date) => {
+  return moment(date).format(date_formate)
+}
+
 const SEMESTERS = [
   {
     id: 1,
@@ -233,4 +239,4 @@ const riderAccountStatus = {
   apply: "apply"
 }
 
-module.exports = { created_at, database_name, secret_key, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, SEMESTERS, riderAccountStatus, activation_array, orderStatus };
+module.exports = { displayDate, date_formate, created_at, database_name, secret_key, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, SEMESTERS, riderAccountStatus, activation_array, orderStatus };

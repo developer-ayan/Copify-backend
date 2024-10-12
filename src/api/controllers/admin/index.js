@@ -4,8 +4,9 @@ const {
   catchErrorValidation,
   delete_file,
   generateClaimCode,
+  wrongValueCheck,
 } = require("../../../utils/helpers");
-const { secret_key } = require("../../../utils/static-values");
+const { secret_key, displayDate } = require("../../../utils/static-values");
 const AdminUsers = require("../../models/admin/admin-users");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
@@ -137,7 +138,8 @@ const createBranch = async (req, res) => {
           password,
           name,
           role_id,
-          branch_address
+          branch_address,
+          file_upload: req.file ? req.file.location : null
         });
         if (created) {
           const token = await jwt.sign(
@@ -173,6 +175,7 @@ const editBranch = async (req, res) => {
       updated.name = name || updated.name;
       updated.password = password || updated.password;
       updated.branch_address = branch_address || updated.branch_address;
+      updated.file_upload = req.file ? req.file.location : updated.file_upload;
       await updated.save();
       res.status(200).json({
         status: true,
@@ -894,6 +897,58 @@ const fetchRiderRadiusList = async (req, res) => {
   }
 };
 
+const fetchPromoCode = async (req, res) => {
+  try {
+    const { promo_code } = req.body;
+    if (!wrongValueCheck(promo_code)) {
+      const find = await PromoCodes.findOne({
+        promo_code: { $regex: new RegExp(`^${promo_code.toLowerCase()}`, 'i') }
+      });
+
+      if (find) {
+        const start_date_promo_code = new Date(find.start_date);
+        const end_date_promo_code = new Date(find.end_date);
+        const current_date = new Date(); // Convert current date to Date object
+
+        // Check if the start date is in the future
+        if (current_date < start_date_promo_code) {
+          res.status(200).json({
+            status: false,
+            message: `This promo code is not valid yet. It will be valid from ${displayDate(start_date_promo_code)} to ${displayDate(end_date_promo_code)}.`,
+          });
+        }
+        // Check if the promo is valid within the start and end date range
+        else if (current_date >= start_date_promo_code && current_date <= end_date_promo_code) {
+          res.status(200).json({
+            status: true,
+            message: "Promo code fetched successfully.",
+            data: find,
+          });
+        }
+        // If the promo has expired
+        else {
+          res.status(200).json({
+            status: false,
+            message: "This promo code has expired.",
+          });
+        }
+      } else {
+        res.status(200).json({
+          status: false,
+          message: "Invalid promo code.",
+        });
+      }
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
 const createPromoCode = async (req, res) => {
   try {
     const { user_id, start_date, end_date, promo_code, discount } = req.body;
@@ -1534,5 +1589,6 @@ module.exports = {
   fetchTeacherSubjectPage,
   fetchTeacherSubjectFiles,
   deleteTeacherSubjectFiles,
-  fetchSubscriberList
+  fetchSubscriberList,
+  fetchPromoCode
 };

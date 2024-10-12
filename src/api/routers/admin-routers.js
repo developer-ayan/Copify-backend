@@ -72,8 +72,8 @@ const { SendMessages, fetchInboxList, fetchMessagesList, fetchSubscribeSubjectFo
 // Authentication routes
 router.post("/login", upload, login);
 router.post("/register", upload, register);
-router.post("/create_branch", upload, createBranch);
-router.post("/edit_branch", upload, editBranch);
+router.post("/create_branch", fileUpload, createBranch);
+router.post("/edit_branch", fileUpload, editBranch);
 router.post("/fetch_branch_list", authAdminMiddleware, upload, fetchBranchList);
 router.post("/delete_user", authAdminMiddleware, upload, deleteUser);
 

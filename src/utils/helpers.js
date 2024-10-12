@@ -311,6 +311,10 @@ function generateChatRoomId(user_id_1, user_id_2) {
   return merge_id;
 }
 
+function wrongValueCheck(value) {
+  return value == "undefined" || value == "null" || value == '';
+}
+
 module.exports = {
   delete_file,
   sendNotification,
@@ -325,5 +329,6 @@ module.exports = {
   saveTransaction,
   generateTransactionId,
   walletHandler,
-  generateChatRoomId
+  generateChatRoomId,
+  wrongValueCheck
 };
