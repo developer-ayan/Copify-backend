@@ -44,7 +44,8 @@ const fetchInstituteList = async (req, res) => {
       const modfiedArr = await modifiedArray(
         "institute_id",
         "institute_name",
-        find
+        find,
+        true
       );
       res.status(200).json({
         status: true,

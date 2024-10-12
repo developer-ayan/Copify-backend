@@ -16,6 +16,10 @@ const instituteSchema = new mongoose.Schema(
       required: [true, "institute location is required"],
       trim: true,
     },
+    file_upload: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },

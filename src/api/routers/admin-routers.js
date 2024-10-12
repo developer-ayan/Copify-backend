@@ -78,8 +78,8 @@ router.post("/fetch_branch_list", authAdminMiddleware, upload, fetchBranchList);
 router.post("/delete_user", authAdminMiddleware, upload, deleteUser);
 
 // Institute routes with authentication middleware
-router.post("/create_institute", authAdminMiddleware, upload, createInstitute);
-router.post("/edit_institute", authAdminMiddleware, upload, editInstitute);
+router.post("/create_institute", authAdminMiddleware, fileUpload, createInstitute);
+router.post("/edit_institute", authAdminMiddleware, fileUpload, editInstitute);
 router.post("/delete_institute", authAdminMiddleware, upload, deleteInstitute);
 router.post(
   "/fetch_institute_detail",

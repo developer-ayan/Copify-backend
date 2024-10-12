@@ -232,6 +232,7 @@ const createInstitute = async (req, res) => {
         user_id,
         institute_name,
         institute_location,
+        file_upload: req.file ? req.file.location : null
       });
       if (created) {
         res.status(200).json({
@@ -262,6 +263,7 @@ const editInstitute = async (req, res) => {
       updated.institute_name = institute_name || updated.institute_name;
       updated.institute_location =
         institute_location || updated.institute_location;
+      updated.file_upload = req.file ? req.file.location : updated.file_upload;
       await updated.save();
       res.status(200).json({
         status: true,
