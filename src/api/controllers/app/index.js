@@ -65,11 +65,12 @@ const fetchInstituteList = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, notification_token } = req.body;
     const validation = validatorMethod({ email, password }, res);
 
     if (validation) {
       const find = await Users.findOne({ email });
+
 
       if (!find) {
         return res.status(200).json({
@@ -78,6 +79,7 @@ const login = async (req, res) => {
         });
       }
 
+      find.notification_token = notification_token || ""
       // Compare the provided password with the stored hashed password
       const isMatch = await bcrypt.compare(password, find.password);
 
@@ -116,11 +118,33 @@ const login = async (req, res) => {
   }
 };
 
+const logout = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const find = await Users.findOne({ user_id })
+    if (find) {
+      find.notification_token = null
+      await find.save()
+      res.status(200).json({
+        status: true,
+        message: "Logout successfully",
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 const register = async (req, res) => {
   try {
     const { email, password, name, contact_number, role_id, institute_id, semester_id,
       department_id,
-      year_level } =
+      year_level, notification_token } =
       req.body;
     const validation = validatorMethod(
       {
@@ -147,8 +171,8 @@ const register = async (req, res) => {
 
           semester_id,
           department_id,
-          year_level
-
+          year_level,
+          notification_token
         });
         if (created) {
           const token = await jwt.sign(
@@ -263,7 +287,7 @@ const EditRiderCoordinates = async (req, res) => {
     if (validation) {
       const updated = await Users.findOne({ user_id });
       updated.location.coordinates =
-        [parseFloat(longitude), parseFloat(latitude)] ||
+        [parseFloat(latitude), parseFloat(longitude)] ||
         updated.location.coordinates;
       await updated.save();
       res.status(200).json({
@@ -631,7 +655,6 @@ const fetchSubscriberedList = async (req, res) => {
 };
 
 const createSubjectFile = async (req, res) => {
-  console.log('req', req?.file?.key)
   const sendNotificationTitle = (id, title, date, time) => {
     if (id == "1") {
       return `${title} has been uploaded to the Copify app.`;
@@ -671,6 +694,7 @@ const createSubjectFile = async (req, res) => {
       res
     );
     if (validation) {
+      // const created = true
       const created = await SubjectFiles.create({
         user_id,
         subject_id,
@@ -686,16 +710,73 @@ const createSubjectFile = async (req, res) => {
         date,
       });
       if (created) {
-        sendNotification(
-          user_id,
-          "File status",
-          sendNotificationTitle(publish_or_save, title, date, time)
-        );
-        res.status(200).json({
-          status: true,
-          message: "Subject file create successfully.",
-          data: created,
-        });
+        // sendNotification(
+        //   user_id,
+        //   "File status",
+        //   sendNotificationTitle(publish_or_save, title, date, time)
+        // );
+        const findUser = await Users.findOne({ user_id })
+        if (findUser) {
+          const find = await Subscribes.aggregate([
+            {
+              $match: {
+                teacher_id: Number(user_id), // Match documents based on teacher_id
+              },
+            },
+            {
+              $lookup: {
+                from: "app_users", // Collection to join with
+                localField: "user_id", // Field from Subscribes
+                foreignField: "user_id", // Field from app_users
+                as: "users", // New array field to add
+              },
+            },
+            // {
+            //   $unwind: "$users", // Unwind the users array to work with individual user documents
+            // },
+            // {
+            //   $project: {
+            //     _id: 0, // Exclude the _id field from the output
+            //     notification_token: "$users.notification_token", // Include only the notification_token field
+            //   },
+            // },
+          ]);
+
+          // Extract notification tokens
+          // const tokens = find
+          //   .map(item => item.users.length > 0 && item.users[0].notification_token) // Check if users exists and has notification_token
+          const tokens = find
+            .flatMap(item =>
+              item.users.map(user => user.notification_token) // Map to get notification tokens
+            )
+            .filter(token => token !== null); // Filter out null values
+
+          const uniqueTokens = [...new Set(tokens.filter(token => token !== null))];
+          console.log(uniqueTokens);
+          console.log("find", find)
+          res.status(200).json({
+            status: true,
+            message: "Subject file create successfully.",
+            data: uniqueTokens,
+          });
+          if (uniqueTokens.length) {
+            sendNotification(
+              user_id,
+              "New File Upload",
+              sendNotificationTitle(publish_or_save, title, date, time),
+              true,
+              uniqueTokens
+            );
+          }
+        } else {
+          res.status(200).json({
+            status: true,
+            message: "Subject file create successfully.",
+            data: created,
+          });
+        }
+
+
       } else {
         res.status(200).json({
           status: false,
@@ -814,6 +895,7 @@ const notificationList = async (req, res) => {
           message: "Notification fetch successfully.",
           data: find,
         });
+        sendNotification(24, "Copify update", "Please update application")
       } else {
         res.status(200).json({
           status: false,
@@ -1462,20 +1544,25 @@ const SendMessages = async (req, res) => {
     if (!validation) return;
     const room_id = await generateChatRoomId(user_id, opposite_user_id);
     const find = await Chat.findOne({ room_id });
+    const user = await Users.findOne({ user_id: opposite_user_id });
     if (find) {
       const parseMessage = JSON.parse(find.messages);
       parseMessage.push({ message, user_id, created_at: createdAt });
       find.last_message = message || find.last_message;
       find.messages = JSON.stringify(parseMessage);
       await find.save();
+      sendNotification(opposite_user_id, "Copify Chat", `You have received a message from ${user?.name || ""}: ${last_message}.`)
     } else {
-      await Chat.create({
+      const created = await Chat.create({
         last_message: message,
         messages: JSON.stringify([{ message, user_id, created_at: createdAt }]),
         room_id,
         user_id_1: user_id,
         user_id_2: opposite_user_id,
       });
+      if (created) {
+        sendNotification(opposite_user_id, "Copify Chat", `You have received a message from ${user?.name || ""}: ${last_message}.`)
+      }
     }
 
     res.status(200).json({
@@ -1978,5 +2065,6 @@ module.exports = {
   fetchOrderDetail,
   editOrderStatus,
   fetchRiderRadius,
-  deleteTeacherSubject
+  deleteTeacherSubject,
+  logout
 };

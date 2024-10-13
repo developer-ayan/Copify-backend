@@ -44,7 +44,8 @@ const {
   fetchOrderDetail,
   editOrderStatus,
   fetchRiderRadius,
-  deleteTeacherSubject
+  deleteTeacherSubject,
+  logout
 } = require("../controllers/app");
 
 // Import middleware
@@ -55,6 +56,7 @@ const { fetchTeacherSubjectPage, fetchSubscriptionPlan, fetchBranchList, fetchPr
 // Authentication routes
 router.post("/login", upload, login);
 router.post("/register", upload, register);
+router.post("/logout", upload, logout);
 router.post("/fetch_verify_email_for_registration", upload, fetchEmailVerifyForRegisteration);
 router.post("/create_subscribe_package", upload, createSubscribePackage);
 

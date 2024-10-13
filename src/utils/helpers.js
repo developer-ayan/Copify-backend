@@ -1,12 +1,23 @@
 var fs = require("fs");
-const OneSignal = require("onesignal-node");
-const path = require("path");
 const Notification = require("../api/models/common/notification");
 const Users = require("../api/models/app/user");
 const nodemailer = require("nodemailer");
 const Transaction = require("../api/models/common/transaction");
 const Wallet = require("../api/models/common/wallet");
+const { GoogleAuth } = require('google-auth-library');
+const path = require('path');
+const axios = require('axios');
+const admin = require("firebase-admin");
+const serviceAccount = path.join(__dirname, '../service-jsons/google-service.json');
+// Set the path for the uploads folder
 const uploads = path.join(__dirname, "../uploads/");
+
+
+
+// Initialize Firebase Admin SDK
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 const delete_file = async (path, fileName) => {
   console.log(uploads + fileName);
@@ -29,32 +40,126 @@ const modifiedArray = async (id, value, arr, childData) => {
   return modfiedArr;
 };
 
-async function sendNotification(user_id, heading, message) {
-  const restApi = "OTMzNDhjYTItOGI2NC00ZDFlLTgxODMtODI2OTMxZGIzODUy";
-  const appId = "2fe1426b-1143-4ac2-bfa7-3fa03a5d432c";
+// Set the path for the uploads folder
+
+async function getAccessToken() {
+  const client = new GoogleAuth({
+    keyFile: serviceAccount,
+    scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
+  });
+
+  const accessToken = await client.getAccessToken();
+  console.log("Access Token:", accessToken);
+  return accessToken;
+}
+
+
+// async function sendNotification(accessToken) {
+
+//   async function getAccessToken() {
+//     const client = new GoogleAuth({
+//       keyFile: serviceAccount,
+//       scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
+//     });
+
+//     const accessToken = await client.getAccessToken();
+//     console.log("Access Token:", accessToken);
+//     return accessToken;
+//   }
+
+
+//   const url = 'https://fcm.googleapis.com/v1/projects/copify-a5feb/messages:send';
+
+//   // Prepare the message payload
+//   const message = {
+//     "message": {
+//       "topic": "all", // Use a topic to send messages to all subscribers
+//       "notification": {
+//         "title": "Hello Everyone!",
+//         "body": "This is a notification for all users!"
+//       }
+//     }
+//   };
+
+//   try {
+//     const response = await axios.post(url, message, {
+//       headers: {
+//         Authorization: `Bearer ${accessToken}`,
+//         'Content-Type': 'application/json',
+//       },
+//     });
+//     console.log('Notification sent successfully:', response.data);
+//   } catch (error) {
+//     console.error('Error sending notification:', error.response ? error.response.data : error.message);
+//   }
+// }
+
+
+// Function to get access token for FCM
+async function getAccessToken() {
+  const client = new GoogleAuth({
+    keyFile: serviceAccount, // Define serviceAccount path in your code
+    scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
+  });
+
+  const accessToken = await client.getAccessToken();
+  return accessToken;
+}
+
+// Function to send notification using FCM
+async function sendNotification(user_id, heading, message, notDataBaseStore, multiple) {
   try {
     const find = await Users.findOne({ user_id });
 
-    // const client = new OneSignal.Client(appId, restApi);
+    // Prepare the FCM message payload
+    const fcmMessage = {
+      message: {
+        notification: {
+          title: heading || "Notification Title",
+          body: message || "Hello, this is a push notification!",
+        },
+      },
+    };
 
-    // const notification = {
-    //   headings: { en: heading || "Notification Title" },
-    //   contents: { en: message || "Hello, this is a push notification!" },
-    //   include_player_ids: [find?.notification_token],
-    //   // included_segments: ['All'],
-    // };
+    if (find && find.notification_token) {
+      // Send notification to a specific user
+      fcmMessage.message.token = multiple || find.notification_token;
+    } else {
+      // Send to a topic (e.g., "all") if no specific user token is found
+      // fcmMessage.message.topic = "all";
+    }
 
-    // const response = await client.createNotification(notification);
-    const transaction = await Notification.create({
-      user_id: find?.user_id,
-      heading,
-      message,
+    // Get access token and send the notification
+    const accessToken = await getAccessToken();
+    const fcmUrl = 'https://fcm.googleapis.com/v1/projects/copify-a5feb/messages:send';
+
+    const response = await axios.post(fcmUrl, fcmMessage, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
     });
+
+    console.log('Notification sent successfully:', response.data);
+    if (!notDataBaseStore) {
+      await Notification.create({
+        user_id: find?.user_id,
+        heading,
+        message,
+      });
+    }
+    // Save notification to the database after sending
+
+
     return true;
+
   } catch (error) {
+    console.error('Error sending notification:', error.message);
     return error.message;
   }
 }
+
+
 
 async function saveTransaction(user_id, amount, transaction_reason, transaction_ref_id) {
   try {
