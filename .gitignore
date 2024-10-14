@@ -59,4 +59,4 @@ yarn-error.log
 /vendor/bundle/
 
 # Temporary files created by Metro to check the health of the file watcher
-.metro-health-check*
+.metro-health-check*"src/service-jsons/google-service.json" 
