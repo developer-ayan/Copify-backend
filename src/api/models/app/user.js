@@ -57,7 +57,7 @@ const userSchema = new mongoose.Schema(
     },
     rider_status_for_student: {
       type: String,
-      default: riderAccountStatus.de_activate,
+      default: riderAccountStatus.in_active,
     },
     semester_id: {
       type: String,

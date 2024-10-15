@@ -233,6 +233,8 @@ const orderStatus = {
 }
 
 const riderAccountStatus = {
+  approve: "approve",
+  in_active: "inActivate",
   activate: "activate",
   de_activate: "de-activate",
   blocked: "blocked",

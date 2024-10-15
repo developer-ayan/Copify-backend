@@ -36,6 +36,7 @@ const Chat = require("../../models/common/chat");
 const BuySubscription = require("../../models/app/buy-subscription");
 const SubscriptionPlan = require("../../models/common/subscription-plans");
 const RiderActivation = require("../../models/app/rider-activation");
+const OrderProof = require("../../models/app/order-proof");
 
 const fetchInstituteList = async (req, res) => {
   try {
@@ -1551,7 +1552,7 @@ const SendMessages = async (req, res) => {
       find.last_message = message || find.last_message;
       find.messages = JSON.stringify(parseMessage);
       await find.save();
-      sendNotification(opposite_user_id, "Copify Chat", `You have received a message from ${user?.name || ""}: ${last_message}.`)
+      sendNotification(opposite_user_id, "Copify Chat", `You have received a message from ${user?.name || ""}: ${message}.`)
     } else {
       const created = await Chat.create({
         last_message: message,
@@ -1561,7 +1562,7 @@ const SendMessages = async (req, res) => {
         user_id_2: opposite_user_id,
       });
       if (created) {
-        sendNotification(opposite_user_id, "Copify Chat", `You have received a message from ${user?.name || ""}: ${last_message}.`)
+        sendNotification(opposite_user_id, "Copify Chat", `You have received a message from ${user?.name || ""}: ${message}.`)
       }
     }
 
@@ -2016,6 +2017,52 @@ const fetchRiderRadius = async (req, res) => {
   }
 };
 
+const createOrderProof = async (req, res) => {
+  try {
+    const { user_id, order_id } = req.body;
+    const files = Array.isArray(req.files) ? req.files?.map((item, index) => item.location) : []
+    console.log("files", files)
+
+    const validation = validatorMethod({ user_id, order_id }, res);
+    if (validation) {
+      const created = await OrderProof.create({ user_id: user_id, order_id, file_uploads: files });
+      res.status(200).json({
+        status: true,
+        message: "Create order proof successfully.",
+        data: created,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchOrderProof = async (req, res) => {
+  try {
+    const { order_id } = req.body;
+    const validation = validatorMethod({ order_id }, res);
+    if (validation) {
+      const find = await OrderProof.findOne({ order_id });
+      res.status(200).json({
+        status: true,
+        message: "Order proof fetch successfully.",
+        data: find,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
 
 module.exports = {
   // teacher
@@ -2066,5 +2113,7 @@ module.exports = {
   editOrderStatus,
   fetchRiderRadius,
   deleteTeacherSubject,
-  logout
+  logout,
+  createOrderProof,
+  fetchOrderProof
 };

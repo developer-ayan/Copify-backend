@@ -45,13 +45,16 @@ const {
   editOrderStatus,
   fetchRiderRadius,
   deleteTeacherSubject,
-  logout
+  logout,
+  createOrderProof,
+  fetchOrderProof
 } = require("../controllers/app");
 
 // Import middleware
 const { authAppMiddleware } = require("../middlewares/authMiddleware");
 const fileUpload = require("../../config/file-folder-check");
 const { fetchTeacherSubjectPage, fetchSubscriptionPlan, fetchBranchList, fetchPromoCode } = require("../controllers/admin");
+const multipleFileUpload = require("../../config/multiple-file-upload");
 
 // Authentication routes
 router.post("/login", upload, login);
@@ -248,6 +251,18 @@ router.post(
   authAppMiddleware,
   upload,
   fetchRiderRadius
+);
+router.post(
+  "/send_order_proof",
+  authAppMiddleware,
+  multipleFileUpload,
+  createOrderProof
+);
+router.post(
+  "/fetch_order_proof",
+  authAppMiddleware,
+  upload,
+  fetchOrderProof
 );
 router.post(
   "/fetch_promo_code",

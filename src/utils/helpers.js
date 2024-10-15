@@ -42,16 +42,6 @@ const modifiedArray = async (id, value, arr, childData) => {
 
 // Set the path for the uploads folder
 
-async function getAccessToken() {
-  const client = new GoogleAuth({
-    keyFile: serviceAccount,
-    scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
-  });
-
-  const accessToken = await client.getAccessToken();
-  console.log("Access Token:", accessToken);
-  return accessToken;
-}
 
 
 // async function sendNotification(accessToken) {
