@@ -46,7 +46,7 @@ const OrderProof = require("../../models/app/order-proof");
 
 const fetchInstituteList = async (req, res) => {
   try {
-    const find = await Institute.find({});
+    const find = await Institute.find({}).sort({ institute_name: 1 });
     if (find) {
       const modfiedArr = await modifiedArray(
         "institute_id",
@@ -444,7 +444,7 @@ const fetchDepartmentList = async (req, res) => {
     const { institute_id } = req.body;
     const validation = validatorMethod({ institute_id }, res);
     if (validation) {
-      const find = await Department.find({ institute_id });
+      const find = await Department.find({ institute_id }).sort({ department_name: 1 });
       const modfiedArr = await modifiedArray(
         "department_id",
         "department_name",
@@ -830,7 +830,7 @@ const deleteTeacherSubject = async (req, res) => {
     const { subject_id } = req.body;
     const validation = validatorMethod({ subject_id }, res);
     if (validation) {
-      const find = await SubjectFiles.find({ subject_id });
+      const find = await SubjectFiles.find({ subject_id }).sort({ title: 1 });
       if (find.length > 0) {
         res.status(200).json({
           status: false,
@@ -855,7 +855,7 @@ const teacherSubjectList = async (req, res) => {
     const { subject_id } = req.body;
     const validation = validatorMethod({ subject_id }, res);
     if (validation) {
-      const find = await SubjectFiles.find({ subject_id });
+      const find = await SubjectFiles.find({ subject_id }).sort({ title: 1 });
       if (find) {
         res.status(200).json({
           status: true,
@@ -879,7 +879,7 @@ const fetchTeacherSubjectFiles = async (req, res) => {
     const { user_id, publish_or_save } = req.body;
     const validation = validatorMethod({ user_id }, res);
     if (validation) {
-      const find = await SubjectFiles.find({ user_id, publish_or_save });
+      const find = await SubjectFiles.find({ user_id, publish_or_save }).sort({ title: 1 });
       if (find) {
         res.status(200).json({
           status: true,
@@ -921,7 +921,8 @@ const notificationList = async (req, res) => {
     const { user_id } = req.body;
     const validation = validatorMethod({ user_id }, res);
     if (validation) {
-      const find = await Notification.find({ user_id });
+      const find = await Notification.find({ user_id })
+        .sort({ createdAt: -1 }) // Sort in descending order (latest first)
       if (find) {
         res.status(200).json({
           status: true,
@@ -1012,7 +1013,7 @@ const fetchSubscribeSubjectForStudent = async (req, res) => {
     const { user_id } = req.body;
     const validation = validatorMethod({ user_id }, res);
     if (validation) {
-      const find = await Subscribes.find({ user_id }).lean();
+      const find = await Subscribes.find({ user_id }).sort({ createdAt: -1 }).lean();
 
       if (find.length > 0) {
         const modifiedArray = await Promise.all(
@@ -1060,7 +1061,7 @@ const fetchCartSubjectFileList = async (req, res) => {
     if (validation) {
       const find = await SubjectFiles.find({
         subject_file_id: { $in: JSON.parse(subject_file_ids) },
-      });
+      }).sort({ title: 1 });
       const fetchDeliveryCharges = await DeliveryCharges.findOne({});
       const deliveryCharges = fetchDeliveryCharges?.delivery_charges || 0;
       const totalPriceReduce = await find.reduce(
@@ -1146,7 +1147,7 @@ const fetchAddressList = async (req, res) => {
     const { user_id } = req.body;
     const validation = validatorMethod({ user_id }, res);
     if (validation) {
-      const find = await Address.find({ user_id });
+      const find = await Address.find({ user_id }).sort({ title: 1 });
       if (find) {
         res.status(200).json({
           status: true,
@@ -1224,7 +1225,7 @@ const fetchUsers = async (req, res) => {
     const validation = validatorMethod({ role_id }, res);
     if (validation) {
       // Find users by role_id
-      const find = await Users.find({ role_id }).lean();
+      const find = await Users.find({ role_id }).sort({ name: 1 }).lean();
 
       // Modify the array as per your requirements
       const modifiedArr = await modifiedArray("user_id", "name", find);
@@ -1346,9 +1347,8 @@ const editWalletTopup = async (req, res) => {
           user_id,
           transactionType: "debit",
           amount,
-          transaction_reason: `You have sent ${toFixedMethod(amount)} PHP to ${
-            findTo?.name
-          }.`,
+          transaction_reason: `You have sent ${toFixedMethod(amount)} PHP to ${findTo?.name
+            }.`,
           res: res,
         });
 
@@ -1534,6 +1534,77 @@ const createPlaceOrder = async (req, res) => {
   }
 };
 
+const EditPlaceBranchOrder = async (req, res) => {
+  try {
+    const {
+      branch_id,
+      order_id
+    } = req.body;
+    const validation = validatorMethod(
+      {
+        branch_id,
+        order_id
+      },
+      res
+    );
+
+    if (validation) {
+      // Find users by role_id
+      const find = await Order.findOne({ order_id })
+      find.branch_id = branch_id
+      await find.save()
+
+      res.status(200).json({
+        status: true,
+        message: "Branch select successfully.",
+        data: find,
+      });
+    }
+  } catch (error) {
+    // Handle errors
+    catchErrorValidation(error, res);
+  }
+};
+
+const EditPlaceRiderOrder = async (req, res) => {
+  try {
+    const {
+      rider_id,
+      order_id
+    } = req.body;
+    const validation = validatorMethod(
+      {
+        rider_id,
+        order_id
+      },
+      res
+    );
+
+    if (validation) {
+      // Find users by role_id
+      const find = await Order.findOne({ order_id })
+      const findUser = await Order.findOne({ user_id: find.rider_id })
+      find.rider_id = rider_id
+      await find.save()
+
+      res.status(200).json({
+        status: true,
+        message: "Transfer order successfully.",
+        data: find,
+      });
+
+      sendNotification(
+        rider_id,
+        "Order Status",
+        `${findUser?.name} has transferred his order to you.`
+      );
+    }
+  } catch (error) {
+    // Handle errors
+    catchErrorValidation(error, res);
+  }
+};
+
 const fetchOrderList = async (req, res) => {
   try {
     const { user_id } = req.body;
@@ -1670,7 +1741,7 @@ const fetchMessagesList = async (req, res) => {
     const validation = validatorMethod({ user_id, opposite_user_id }, res);
     if (validation) {
       const room_id = await generateChatRoomId(user_id, opposite_user_id);
-      const find = await Chat.find({ room_id }).lean();
+      const find = await Chat.find({ room_id }).sort({ createdAt: -1 }).lean();
       const modifiedArray = await find.map((item, index) => {
         return {
           ...item,
@@ -1708,7 +1779,7 @@ const fetchInboxList = async (req, res) => {
     // Fetch chats where user_id matches either user_id_1 or user_id_2
     const find = await Chat.find({
       $or: [{ user_id_1: user_id }, { user_id_2: user_id }],
-    }).lean();
+    }).sort({ createdAt: -1 }).lean();
 
     // Process each chat document
     const modifiedArray = await Promise.all(
@@ -1746,7 +1817,7 @@ const fetchPlaceOrders = async (req, res) => {
     const { user_id } = req.body;
     const validation = validatorMethod({ user_id }, res);
     if (validation) {
-      const find = await Order.find({ user_id }).lean();
+      const find = await Order.find({ user_id }).sort({ createdAt: -1 }).lean();
       const modifiedArray = await Promise.all(
         find.map(async (item) => {
           const subjectFileIds = JSON.parse(item.subject_file_ids);
@@ -1763,9 +1834,8 @@ const fetchPlaceOrders = async (req, res) => {
 
               return {
                 ...subjectFile._doc,
-                subject_name: `${
-                  findSubject?.subject_description + findSubject.subject_code
-                } - Section ${findSubject.section}`,
+                subject_name: `${findSubject?.subject_description + findSubject.subject_code
+                  } - Section ${findSubject.section}`,
               }; // subjectFile ka data return karein with subject details
             })
           );
@@ -1839,7 +1909,7 @@ const fetchRiderList = async (req, res) => {
     const find = await Users.find({
       role_id: "3",
       rider_status_for_student: { $ne: riderAccountStatus.in_active },
-    }).lean();
+    }).sort({ name: 1 }).lean();
     if (find) {
       const filter = find.filter(
         (item, index) => item.rider_status_for_student != "inActive"
@@ -1974,6 +2044,7 @@ const fetchRiderDashboard = async (req, res) => {
             ...item,
             claim_code: generateClaimCode(item.user_id),
             generate_order_id: generateClaimCode(item.order_id, "ORD#"),
+            original_order_id: item.order_id
           };
         });
         res.status(200).json({
@@ -2090,6 +2161,94 @@ const fetchOrderDetail = async (req, res) => {
           order: find[0], // The order details
           subjectFiles: findFiles, // The associated subject files
         },
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+const fetchOrders = async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    const validation = validatorMethod({ user_id }, res);
+
+    if (validation) {
+      const find = await Order.aggregate([
+        {
+          $match: { user_id: user_id }, // Find the order by order_id
+        },
+        {
+          $lookup: {
+            from: "app_users", // The collection you're joining (app_users)
+            let: { user_id: "$user_id" }, // Reference to the user_id in the Order collection
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: [{ $toString: "$user_id" }, "$$user_id"] }, // Convert app_users.user_id to string for comparison
+                },
+              },
+            ],
+            as: "user_detail", // The name for the result of the joined data
+          },
+        },
+        {
+          $unwind: {
+            path: "$user_detail",
+            preserveNullAndEmptyArrays: true, // This will allow it to continue if the field is not an array or is null
+          },
+        },
+        {
+          $lookup: {
+            from: "addresses", // The collection you're joining (addresses)
+            let: { user_id: "$user_id", address_id: "$address_id" }, // Reference to the user_id and address_id in the Order collection
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: [{ $toString: "$user_id" }, "$$user_id"] }, // Convert addresses.user_id to string for comparison with order's user_id
+                      { $eq: [{ $toString: "$address_id" }, "$$address_id"] }, // Ensure address_id from Order matches address_id in addresses
+                    ],
+                  },
+                },
+              },
+            ],
+            as: "address", // The name for the result of the joined data
+          },
+        },
+        {
+          $unwind: {
+            path: "$address",
+            preserveNullAndEmptyArrays: true, // This will allow it to continue if the field is not an array or is null
+          },
+        },
+      ]);
+
+      // Fetch associated subject files
+
+      const findMap = await Promise.all(
+        find.map(async (item) => {
+          const findFiles = await SubjectFiles.find({
+            subject_file_id: { $in: JSON.parse(item.subject_file_ids || "[]") }, // Fallback to an empty array if not found
+          });
+          return {
+            ...item,
+            subjectFiles: findFiles
+          };
+        })
+      );
+
+      // Return both order details and associated files
+      res.status(200).json({
+        status: true,
+        message: "Order fetch successfully.",
+        data: findMap,
       });
     } else {
       res.status(200).json({
@@ -2270,4 +2429,7 @@ module.exports = {
   createOrderProof,
   fetchOrderProof,
   fetchRiderList,
+  fetchOrders,
+  EditPlaceBranchOrder,
+  EditPlaceRiderOrder
 };

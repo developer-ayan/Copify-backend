@@ -64,6 +64,7 @@ const {
   editBranch,
   deleteUser,
   SearchRider,
+  SearchStudentAndTeacher,
 } = require("../controllers/admin");
 
 // Import middleware
@@ -306,6 +307,7 @@ router.post(
 // student dashboard routes with authentication middleware
 router.post("/search_student", authAdminMiddleware, upload, SearchStudent);
 router.post("/search_rider", authAdminMiddleware, upload, SearchRider);
+router.post("/search_student_and_teacher", authAdminMiddleware, upload, SearchStudentAndTeacher);
 router.post(
   "/fetch_subscribe_subject_for_student",
   authAdminMiddleware,

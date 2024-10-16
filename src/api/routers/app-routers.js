@@ -47,7 +47,10 @@ const {
   deleteTeacherSubject,
   logout,
   createOrderProof,
-  fetchOrderProof
+  fetchOrderProof,
+  fetchOrders,
+  EditPlaceBranchOrder,
+  EditPlaceRiderOrder
 } = require("../controllers/app");
 
 // Import middleware
@@ -241,6 +244,12 @@ router.post(
   fetchOrderDetail
 );
 router.post(
+  "/fetch_All_orders",
+  authAppMiddleware,
+  upload,
+  fetchOrders
+);
+router.post(
   "/edit_order_status",
   authAppMiddleware,
   upload,
@@ -269,6 +278,18 @@ router.post(
   authAppMiddleware,
   upload,
   fetchPromoCode
+);
+router.post(
+  "/edit_place_branch_order",
+  authAppMiddleware,
+  upload,
+  EditPlaceBranchOrder
+);
+router.post(
+  "/edit_place_rider_order",
+  authAppMiddleware,
+  upload,
+  EditPlaceRiderOrder
 );
 
 module.exports = router;

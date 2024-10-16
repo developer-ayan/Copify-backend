@@ -211,7 +211,7 @@ const fetchBranchList = async (req, res) => {
     const find = await Users.find({
       role_id: "2",
       account_status: "active",
-    }).lean();
+    }).sort({ name: 1 }).lean();
     const modifiedArray = find?.map((item, index) => {
       return { ...item, branch_id: item.user_id };
     });
@@ -348,7 +348,7 @@ const SearchInstitute = async (req, res) => {
         });
       }
     } else {
-      const find = await Institute.find({});
+      const find = await Institute.find({}).sort({ institute_name: 1 });
       res.status(200).json({
         status: true,
         message: "Institute fetch successfully.",
@@ -378,7 +378,9 @@ const fetchInstituteTeacherAndStudent = async (req, res) => {
     const { institute_id, role_id } = req.body;
     const validation = validatorMethod({ institute_id, role_id }, res);
     if (validation) {
-      const find = await Users.find({ institute_id, role_id }).lean(); // Convert to plain objects to modify safely
+      const find = await Users.find({ institute_id, role_id })
+        .sort({ name: 1 }) // Sort in ascending order (A to Z) by name
+        .lean(); // Convert to plain objects to modify safely
 
       if (find) {
         // Modify array by adding role_type based on role_id
@@ -453,7 +455,9 @@ const fetchDepartmentList = async (req, res) => {
     const { institute_id } = req.body;
     const validation = validatorMethod({ institute_id }, res);
     if (validation) {
-      const find = await Department.find({ institute_id });
+      const find = await Department.find({ institute_id })
+        .sort({ department_name: 1 }) // Sort in ascending order (A to Z) by department_name
+        .lean();
       res.status(200).json({
         status: true,
         message: "Department fetch successfully.",
@@ -611,7 +615,10 @@ const fetchSubjectList = async (req, res) => {
     const { institute_id } = req.body;
     const validation = validatorMethod({ institute_id }, res);
     if (validation) {
-      const find = await Subject.find({ institute_id });
+      const find = await Subject.find({ institute_id })
+        .sort({ subject_description: 1 }) // Sort in ascending order (A to Z) by department_name
+        .lean();
+
       res.status(200).json({
         status: true,
         message: "Subject fetch successfully.",
@@ -701,7 +708,7 @@ const fetchSemesterList = async (req, res) => {
     const { department_id } = req.body;
     const validation = validatorMethod({ department_id }, res);
     if (validation) {
-      const find = await Semesters.find({ department_id });
+      const find = await Semesters.find({ department_id })
       res.status(200).json({
         status: true,
         message: "Semester fetch successfully.",
@@ -769,6 +776,7 @@ const editDeliveryCharges = async (req, res) => {
 const fetchDeliveryChargesList = async (req, res) => {
   try {
     const find = await DeliveryCharges.find({});
+
     res.status(200).json({
       status: true,
       message: "Delivery charges fetch successfully.",
@@ -1352,9 +1360,8 @@ const fetchTeacherSubjectPage = async (req, res) => {
       const modfiedArr = await find?.map((item, index) => {
         return {
           id: item.subject_id,
-          value: `${item?.subject_description + item.subject_code} - Section ${
-            item.section
-          }`,
+          value: `${item?.subject_description + item.subject_code} - Section ${item.section
+            }`,
         };
       });
       res.status(200).json({
@@ -1381,7 +1388,7 @@ const fetchTeacherSubjectFiles = async (req, res) => {
       const find = await SubjectFiles.find({
         subject_id,
         publish_or_save: files_type,
-      });
+      }).sort({ title: 1 })
       res.status(200).json({
         status: true,
         message: "Subject files fetch successfully.",
@@ -1416,7 +1423,7 @@ const deleteTeacherSubjectFiles = async (req, res) => {
 
 const fetchSubscriptionPlan = async (req, res) => {
   try {
-    const find = await SubscriptionPlan.find({});
+    const find = await SubscriptionPlan.find({}).sort({ month: 1 })
     res.status(200).json({
       status: true,
       message: "Subscription plan fetch successfully.",
@@ -1520,8 +1527,8 @@ const SearchTeacher = async (req, res) => {
       role_id: "4", // Only users with role_id 3
       ...(regex
         ? {
-            $or: [{ name: { $regex: regex } }, { email: { $regex: regex } }],
-          }
+          $or: [{ name: { $regex: regex } }, { email: { $regex: regex } }],
+        }
         : {}),
     };
 
@@ -1559,8 +1566,8 @@ const SearchStudent = async (req, res) => {
       role_id: "3", // Only users with role_id 3
       ...(regex
         ? {
-            $or: [{ name: { $regex: regex } }, { email: { $regex: regex } }],
-          }
+          $or: [{ name: { $regex: regex } }, { email: { $regex: regex } }],
+        }
         : {}),
     };
 
@@ -1586,6 +1593,46 @@ const SearchStudent = async (req, res) => {
   }
 };
 
+const SearchStudentAndTeacher = async (req, res) => {
+  try {
+    const { search } = req.body;
+
+    // Constructing regex based on the input
+    const regex = search ? new RegExp(search, "i") : null;
+
+    // Build the $match object to ensure role_id is 3 and apply search if available
+    const matchCriteria = {
+      role_id: { $in: ["3", "4"] }, // Only users with role_id 3 or 4
+      ...(regex
+        ? {
+          $or: [{ name: { $regex: regex } }, { email: { $regex: regex } }],
+        }
+        : {}),
+    };
+
+    const find = await Users.aggregate([
+      {
+        $match: matchCriteria,
+      },
+    ]);
+
+    // If users are found, modify the array
+    const modifiedArray = find.map((item) => ({
+      ...item,
+      claim_number: generateClaimCode(item.user_id),
+    }));
+
+    res.status(200).json({
+      status: true,
+      message: "Students fetched successfully.",
+      data: modifiedArray.length > 0 ? modifiedArray : [],
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
+
 const SearchRider = async (req, res) => {
   try {
     const { search } = req.body;
@@ -1610,8 +1657,8 @@ const SearchRider = async (req, res) => {
       }, // Exclude inActive and inActivate
       ...(regex
         ? {
-            $or: [{ name: { $regex: regex } }, { email: { $regex: regex } }],
-          }
+          $or: [{ name: { $regex: regex } }, { email: { $regex: regex } }],
+        }
         : {}),
     };
 
@@ -1697,4 +1744,5 @@ module.exports = {
   fetchSubscriberList,
   fetchPromoCode,
   SearchRider,
+  SearchStudentAndTeacher
 };
