@@ -50,7 +50,8 @@ const {
   fetchOrderProof,
   fetchOrders,
   EditPlaceBranchOrder,
-  EditPlaceRiderOrder
+  EditPlaceRiderOrder,
+  fetchOrderBranch
 } = require("../controllers/app");
 
 // Import middleware
@@ -248,6 +249,12 @@ router.post(
   authAppMiddleware,
   upload,
   fetchOrders
+);
+router.post(
+  "/fetch_branch_orders",
+  authAppMiddleware,
+  upload,
+  fetchOrderBranch
 );
 router.post(
   "/edit_order_status",

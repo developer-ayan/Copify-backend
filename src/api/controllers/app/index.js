@@ -2172,6 +2172,112 @@ const fetchOrderDetail = async (req, res) => {
   }
 };
 
+const fetchOrderBranch = async (req, res) => {
+  try {
+    const { branch_id } = req.body;
+    const validation = validatorMethod({ branch_id }, res);
+
+    if (validation) {
+      const find = await Order.aggregate([
+        {
+          $match: { branch_id: branch_id }, // Find the order by order_id
+        },
+        {
+          $lookup: {
+            from: "app_users", // The collection you're joining (app_users)
+            let: { user_id: "$user_id" }, // Reference to the user_id in the Order collection
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: [{ $toString: "$user_id" }, "$$user_id"] }, // Convert app_users.user_id to string for comparison
+                },
+              },
+            ],
+            as: "user_detail", // The name for the result of the joined data
+          },
+        },
+        {
+          $unwind: {
+            path: "$user_detail",
+            preserveNullAndEmptyArrays: true, // This will allow it to continue if the field is not an array or is null
+          },
+        },
+        {
+          $lookup: {
+            from: "addresses", // The collection you're joining (addresses)
+            let: { user_id: "$user_id", address_id: "$address_id" }, // Reference to the user_id and address_id in the Order collection
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: [{ $toString: "$user_id" }, "$$user_id"] }, // Convert addresses.user_id to string for comparison with order's user_id
+                      { $eq: [{ $toString: "$address_id" }, "$$address_id"] }, // Ensure address_id from Order matches address_id in addresses
+                    ],
+                  },
+                },
+              },
+            ],
+            as: "address", // The name for the result of the joined data
+          },
+        },
+        {
+          $unwind: {
+            path: "$address",
+            preserveNullAndEmptyArrays: true, // This will allow it to continue if the field is not an array or is null
+          },
+        },
+      ]);
+
+      // Fetch associated subject files
+
+      const findMap = await Promise.all(
+        find.map(async (item) => {
+          // Find the subject files based on the provided subject_file_ids
+          const findFiles = await SubjectFiles.find({
+            subject_file_id: { $in: JSON.parse(item.subject_file_ids || "[]") }, // Fallback to an empty array if not found
+          }).populate('paper_size_id'); // Populate the related paper size if it's set up as a reference in your SubjectFiles schema
+
+          // Map through the found subject files to structure the output
+          const findMap2 = await Promise.all(
+            findFiles.map(async (file) => {
+              // Assuming paper_size_id in SubjectFiles references the PaperSizes collection
+              const paperSize = await PaperSizes.findOne({ paper_size_id: file.paper_size_id }); // Find the associated paper size
+
+              // Return the item with the populated paper size details
+              return {
+                ...file._doc, // Spread the original file document
+                paper_size: paperSize ? paperSize._doc : null, // Include the paper size or null if not found
+              };
+            })
+          );
+
+          // Return the item with the subject files included
+          return {
+            ...item,
+            claim_code: generateClaimCode(item.user_id),
+            subjectFiles: findMap2 // Attach the found subject files to the item
+          };
+        })
+      );
+
+      // Return both order details and associated files
+      res.status(200).json({
+        status: true,
+        message: "Order fetch successfully.",
+        data: findMap,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
+
 const fetchOrders = async (req, res) => {
   try {
     const { user_id } = req.body;
@@ -2430,5 +2536,6 @@ module.exports = {
   fetchRiderList,
   fetchOrders,
   EditPlaceBranchOrder,
-  EditPlaceRiderOrder
+  EditPlaceRiderOrder,
+  fetchOrderBranch
 };
