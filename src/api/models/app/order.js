@@ -35,8 +35,6 @@ const orderSchema = new mongoose.Schema(
         },
         rider_charges: {
             type: String,
-            required: [true, "rider_charges is required"],
-            trim: true,
         },
         sub_total: {
             type: String,

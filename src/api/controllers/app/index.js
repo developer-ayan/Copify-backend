@@ -1422,7 +1422,6 @@ const createPlaceOrder = async (req, res) => {
         user_id,
         rider_id,
         subject_file_ids,
-        address_id,
         sub_total,
         total_price,
         transaction_type,
