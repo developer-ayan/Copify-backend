@@ -1257,7 +1257,7 @@ const fetchRiderDropDown = async (req, res) => {
           $geoNear: {
             near: {
               type: "Point",
-              coordinates: [Number(longitude), Number(latitude)],
+              coordinates: [Number(latitude), Number(longitude)],
             },
             distanceField: "distance",
             maxDistance: radiusInKm * 1000, // Convert kilometers to meters

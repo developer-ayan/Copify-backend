@@ -362,10 +362,10 @@ const SearchInstitute = async (req, res) => {
 
 const fetchInstituteList = async (req, res) => {
   try {
-    const find = await Institute.find({});
+    const find = await Institute.find({}).sort({ institute_name: 1 }); // 1 for ascending order
     res.status(200).json({
       status: true,
-      message: "Institute fetch successfully.",
+      message: "Institute fetched successfully.",
       data: find,
     });
   } catch (error) {
