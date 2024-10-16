@@ -1543,7 +1543,11 @@ const fetchOrderList = async (req, res) => {
         .sort({ created_at: -1 })
         .lean();
       const modifiedArray = find?.map((item, index) => {
-        return { ...item, order_id: generateClaimCode(item.order_id, "ORD#") };
+        return {
+          ...item,
+          original_order_id: item.order_id,
+          order_id: generateClaimCode(item.order_id, "ORD#"),
+        };
       });
       res.status(200).json({
         status: true,
