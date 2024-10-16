@@ -14,7 +14,13 @@ const {
   generateChatRoomId,
   wrongValueCheck,
 } = require("../../../utils/helpers");
-const { secret_key, SEMESTERS, riderAccountStatus, activation_array, orderStatus } = require("../../../utils/static-values");
+const {
+  secret_key,
+  SEMESTERS,
+  riderAccountStatus,
+  activation_array,
+  orderStatus,
+} = require("../../../utils/static-values");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const Institute = require("../../models/common/institute");
@@ -72,7 +78,6 @@ const login = async (req, res) => {
     if (validation) {
       const find = await Users.findOne({ email });
 
-
       if (!find) {
         return res.status(200).json({
           status: false,
@@ -80,7 +85,7 @@ const login = async (req, res) => {
         });
       }
 
-      find.notification_token = notification_token || ""
+      find.notification_token = notification_token || "";
       // Compare the provided password with the stored hashed password
       const isMatch = await bcrypt.compare(password, find.password);
 
@@ -100,12 +105,13 @@ const login = async (req, res) => {
           { user_id: find.user_id, email: find.email },
           secret_key
         );
-        find.claim_no = generateClaimCode(find.user_id)
+        find.claim_no = generateClaimCode(find.user_id);
+        find.claim_number = generateClaimCode(find.user_id);
         find.token = token;
         await find.save();
 
         const userResponse = find.toObject();
-        userResponse.claim_no = generateClaimCode(find.user_id)
+        userResponse.claim_number = generateClaimCode(find.user_id);
 
         res.status(200).json({
           status: true,
@@ -122,10 +128,10 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
   try {
     const { user_id } = req.body;
-    const find = await Users.findOne({ user_id })
+    const find = await Users.findOne({ user_id });
     if (find) {
-      find.notification_token = null
-      await find.save()
+      find.notification_token = null;
+      await find.save();
       res.status(200).json({
         status: true,
         message: "Logout successfully",
@@ -143,13 +149,26 @@ const logout = async (req, res) => {
 
 const register = async (req, res) => {
   try {
-    const { email, password, name, contact_number, role_id, institute_id, semester_id,
+    const {
+      email,
+      password,
+      name,
+      contact_number,
+      role_id,
+      institute_id,
+      semester_id,
       department_id,
-      year_level, notification_token } =
-      req.body;
+      year_level,
+      notification_token,
+    } = req.body;
     const validation = validatorMethod(
       {
-        email, name, role_id, contact_number, institute_id, password,
+        email,
+        name,
+        role_id,
+        contact_number,
+        institute_id,
+        password,
       },
       res
     );
@@ -173,7 +192,7 @@ const register = async (req, res) => {
           semester_id,
           department_id,
           year_level,
-          notification_token
+          notification_token,
         });
         if (created) {
           const token = await jwt.sign(
@@ -184,7 +203,7 @@ const register = async (req, res) => {
           created.token = token;
           await created.save();
           const userResponse = created.toObject();
-          userResponse.claim_no = generateClaimCode(created.user_id)
+          userResponse.claim_no = generateClaimCode(created.user_id);
           res.status(200).json({
             status: true,
             message: "Account has been created.",
@@ -220,7 +239,6 @@ const fetchEmailVerifyForRegisteration = async (req, res) => {
           message: "Now you can proceed.",
         });
       }
-
     }
   } catch (error) {
     catchErrorValidation(error, res);
@@ -229,10 +247,21 @@ const fetchEmailVerifyForRegisteration = async (req, res) => {
 
 const createSubscribePackage = async (req, res) => {
   try {
-    const { user_id, subsrciption_plan_id, amount, card_number, year, month, cvv } = req.body;
-    const validation = validatorMethod({ user_id, subsrciption_plan_id, amount, card_number, year, month, cvv }, res);
+    const {
+      user_id,
+      subsrciption_plan_id,
+      amount,
+      card_number,
+      year,
+      month,
+      cvv,
+    } = req.body;
+    const validation = validatorMethod(
+      { user_id, subsrciption_plan_id, amount, card_number, year, month, cvv },
+      res
+    );
     if (validation) {
-      const find = await SubscriptionPlan.findOne({ subsrciption_plan_id })
+      const find = await SubscriptionPlan.findOne({ subsrciption_plan_id });
       if (find) {
         const created = await BuySubscription.create({
           user_id,
@@ -241,20 +270,20 @@ const createSubscribePackage = async (req, res) => {
         if (created) {
           const credit = await walletHandler({
             user_id,
-            transactionType: 'credit',
+            transactionType: "credit",
             amount,
           });
           if (credit?.status) {
             const debit = await walletHandler({
               user_id,
-              transactionType: 'debit',
+              transactionType: "debit",
               amount,
               transaction_reason: `Your account has been debited as you have purchased a ${find?.month}-month subscription plan.`,
             });
             if (debit?.status) {
               res.status(200).json({
                 status: true,
-                message: `Your account has been debited as you have purchased a ${find?.month}-month subscription plan.`
+                message: `Your account has been debited as you have purchased a ${find?.month}-month subscription plan.`,
               });
             } else {
               res.status(200).json(credit);
@@ -274,7 +303,6 @@ const createSubscribePackage = async (req, res) => {
           message: "Subsciption plan not found!",
         });
       }
-
     }
   } catch (error) {
     catchErrorValidation(error, res);
@@ -305,7 +333,7 @@ const teacherDashboard = async (req, res) => {
   try {
     const { institute_id, user_id } = req.body;
     const validation = validatorMethod({ institute_id }, res);
-    const institute_detail = await Institute.findOne({ institute_id })
+    const institute_detail = await Institute.findOne({ institute_id });
 
     if (validation) {
       const find = await Department.aggregate([
@@ -362,36 +390,42 @@ const teacherDashboard = async (req, res) => {
         },
         {
           $sort: {
-            created_at: -1 // Sort by created_at descending, so newer departments come first
-          }
-        }
+            created_at: -1, // Sort by created_at descending, so newer departments come first
+          },
+        },
       ]);
 
       if (find.length > 0) {
+        const modifiedArray = await Promise.all(
+          find.map(async (item, index) => {
+            return {
+              ...item,
+              semester: await Promise.all(
+                item.semester.map(async (e) => {
+                  const findSubscribers = await Subscribes.findOne({
+                    user_id: user_id,
+                    subject_id: e.subject_id,
+                  });
 
-        const modifiedArray = await Promise.all(find.map(async (item, index) => {
-          return {
-            ...item,
-            semester: await Promise.all(item.semester.map(async (e) => {
-              const findSubscribers = await Subscribes.findOne({
-                user_id: user_id,
-                subject_id: e.subject_id
-              });
-
-              return {
-                ...e,
-                semester_name: getValueById(SEMESTERS, Number(e.semester_id)),
-                is_subscribed: findSubscribers?.user_id ? true : false
-              };
-            })),
-          };
-        }));
+                  return {
+                    ...e,
+                    semester_name: getValueById(
+                      SEMESTERS,
+                      Number(e.semester_id)
+                    ),
+                    is_subscribed: findSubscribers?.user_id ? true : false,
+                  };
+                })
+              ),
+            };
+          })
+        );
 
         res.status(200).json({
           status: true,
           message: "Department fetched successfully.",
           data: modifiedArray,
-          institute_detail
+          institute_detail,
         });
       } else {
         res.status(200).json({
@@ -404,7 +438,6 @@ const teacherDashboard = async (req, res) => {
     catchErrorValidation(error, res);
   }
 };
-
 
 const fetchDepartmentList = async (req, res) => {
   try {
@@ -472,7 +505,7 @@ const createTeacherPage = async (req, res) => {
       year,
       no_of_enrolled,
       subject_id,
-      subject_edit
+      subject_edit,
     } = req.body;
     if (subject_edit == "true") {
       const updated = await Subject.findOne({ subject_id });
@@ -482,7 +515,7 @@ const createTeacherPage = async (req, res) => {
       updated.semester_id = semester_id || updated.semester_id;
       updated.year = year || updated.semester_id;
       updated.no_of_enrolled = no_of_enrolled || updated.no_of_enrolled;
-      await updated.save()
+      await updated.save();
       res.status(200).json({
         status: true,
         message: "Subject update successfully.",
@@ -532,7 +565,6 @@ const createTeacherPage = async (req, res) => {
         }
       }
     }
-
   } catch (error) {
     catchErrorValidation(error, res);
   }
@@ -636,7 +668,7 @@ const fetchSubscriberedList = async (req, res) => {
             foreignField: "subject_id", // Field from app_users
             as: "students", // New array field to add
           },
-        }
+        },
       ]);
 
       res.status(200).json({
@@ -716,7 +748,7 @@ const createSubjectFile = async (req, res) => {
         //   "File status",
         //   sendNotificationTitle(publish_or_save, title, date, time)
         // );
-        const findUser = await Users.findOne({ user_id })
+        const findUser = await Users.findOne({ user_id });
         if (findUser) {
           const find = await Subscribes.aggregate([
             {
@@ -747,14 +779,16 @@ const createSubjectFile = async (req, res) => {
           // const tokens = find
           //   .map(item => item.users.length > 0 && item.users[0].notification_token) // Check if users exists and has notification_token
           const tokens = find
-            .flatMap(item =>
-              item.users.map(user => user.notification_token) // Map to get notification tokens
+            .flatMap(
+              (item) => item.users.map((user) => user.notification_token) // Map to get notification tokens
             )
-            .filter(token => token !== null); // Filter out null values
+            .filter((token) => token !== null); // Filter out null values
 
-          const uniqueTokens = [...new Set(tokens.filter(token => token !== null))];
+          const uniqueTokens = [
+            ...new Set(tokens.filter((token) => token !== null)),
+          ];
           console.log(uniqueTokens);
-          console.log("find", find)
+          console.log("find", find);
           res.status(200).json({
             status: true,
             message: "Subject file create successfully.",
@@ -776,8 +810,6 @@ const createSubjectFile = async (req, res) => {
             data: created,
           });
         }
-
-
       } else {
         res.status(200).json({
           status: false,
@@ -798,11 +830,12 @@ const deleteTeacherSubject = async (req, res) => {
     const { subject_id } = req.body;
     const validation = validatorMethod({ subject_id }, res);
     if (validation) {
-      const find = await SubjectFiles.find({ subject_id })
+      const find = await SubjectFiles.find({ subject_id });
       if (find.length > 0) {
         res.status(200).json({
           status: false,
-          message: "In this subject, you already have a file associated, which is why you cannot delete it.",
+          message:
+            "In this subject, you already have a file associated, which is why you cannot delete it.",
         });
       } else {
         const deleted = await Subject.findOneAndDelete({ subject_id });
@@ -811,7 +844,6 @@ const deleteTeacherSubject = async (req, res) => {
           message: "Subject delete successfully.",
         });
       }
-
     }
   } catch (error) {
     catchErrorValidation(error, res);
@@ -896,7 +928,7 @@ const notificationList = async (req, res) => {
           message: "Notification fetch successfully.",
           data: find,
         });
-        sendNotification(24, "Copify update", "Please update application")
+        sendNotification(24, "Copify update", "Please update application");
       } else {
         res.status(200).json({
           status: false,
@@ -980,19 +1012,27 @@ const fetchSubscribeSubjectForStudent = async (req, res) => {
     const { user_id } = req.body;
     const validation = validatorMethod({ user_id }, res);
     if (validation) {
-      const find = await Subscribes.find({ user_id }).lean()
+      const find = await Subscribes.find({ user_id }).lean();
 
-      if (find) {
-        // Create an array of promises to fetch subject details
+      if (find.length > 0) {
         const modifiedArray = await Promise.all(
           find.map(async (item) => {
             const subject = await Subject.findOne({
               subject_id: item.subject_id,
             });
-            return {
-              ...item,
-              subject_name: `${subject?.subject_description + subject.subject_code} - Section ${subject.section}`,
-            };
+
+            if (subject) {
+              return {
+                ...item,
+                subject_name: `${subject.subject_description} ${subject.subject_code} - Section ${subject.section}`,
+              };
+            } else {
+              // Handle the case where subject is not found
+              return {
+                ...item,
+                subject_name: "Subject not found",
+              };
+            }
           })
         );
 
@@ -1004,7 +1044,7 @@ const fetchSubscribeSubjectForStudent = async (req, res) => {
       } else {
         res.status(200).json({
           status: false,
-          message: "Something went wrong!",
+          message: "No subscriptions found.",
         });
       }
     }
@@ -1012,7 +1052,6 @@ const fetchSubscribeSubjectForStudent = async (req, res) => {
     catchErrorValidation(error, res);
   }
 };
-
 
 const fetchCartSubjectFileList = async (req, res) => {
   try {
@@ -1051,7 +1090,10 @@ const fetchCartSubjectFileList = async (req, res) => {
 const createAddress = async (req, res) => {
   try {
     const { address, title, contact_number, user_id } = req.body;
-    const validation = validatorMethod({ address, title, contact_number, user_id }, res);
+    const validation = validatorMethod(
+      { address, title, contact_number, user_id },
+      res
+    );
     if (validation) {
       // Check if a subscription already exists
       const existing = await Address.findOne({
@@ -1163,7 +1205,7 @@ const fetchPaperSizeList = async (req, res) => {
       "paper_size",
       find,
       true
-    )
+    );
     res.status(200).json({
       status: true,
       message: "Paper size fetch successfully.",
@@ -1185,11 +1227,7 @@ const fetchUsers = async (req, res) => {
       const find = await Users.find({ role_id }).lean();
 
       // Modify the array as per your requirements
-      const modifiedArr = await modifiedArray(
-        "user_id",
-        "name",
-        find,
-      );
+      const modifiedArr = await modifiedArray("user_id", "name", find);
 
       // Send successful response
       res.status(200).json({
@@ -1204,15 +1242,13 @@ const fetchUsers = async (req, res) => {
   }
 };
 
-
-
 const fetchRiderDropDown = async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
     const validation = validatorMethod({ latitude, longitude }, res);
     if (validation) {
       // Convert kilometers to radians (5 km / Earth's radius in kilometers)
-      const riderRadius = await RiderRadius.findOne({})
+      const riderRadius = await RiderRadius.findOne({});
       const radiusInKm = parseFloat(riderRadius?.rider_radius) || 5;
       const earthRadiusInKm = 6378.1;
 
@@ -1227,11 +1263,11 @@ const fetchRiderDropDown = async (req, res) => {
             maxDistance: radiusInKm * 1000, // Convert kilometers to meters
             spherical: true,
             query: {
-              role_id: '3',
-              rider_status_for_student: riderAccountStatus?.activate
-            }
-          }
-        }
+              role_id: "3",
+              rider_status_for_student: riderAccountStatus?.activate,
+            },
+          },
+        },
       ]);
 
       const modifiedArray = find?.map((item) => {
@@ -1240,7 +1276,7 @@ const fetchRiderDropDown = async (req, res) => {
           user_id: item.user_id,
           name: item.name,
           distance: toFixedMethod(item.distance),
-          price: toFixedMethod(price)
+          price: toFixedMethod(price),
         };
       });
 
@@ -1262,15 +1298,26 @@ const fetchRiderDropDown = async (req, res) => {
 
 const editWalletTopup = async (req, res) => {
   try {
-    const { user_id, amount, card_number, year, month, cvv, is_admin, recharge, transfer, opposite_user_id, withdraw } = req.body;
+    const {
+      user_id,
+      amount,
+      card_number,
+      year,
+      month,
+      cvv,
+      is_admin,
+      recharge,
+      transfer,
+      opposite_user_id,
+      withdraw,
+    } = req.body;
 
     // Admin wallet handling
     if (is_admin) {
-
       if (withdraw) {
         const response = await walletHandler({
           user_id,
-          transactionType: 'debit',
+          transactionType: "debit",
           amount,
           transaction_reason: `You have withdrawn ${toFixedMethod(amount)} PHP`,
         });
@@ -1280,9 +1327,11 @@ const editWalletTopup = async (req, res) => {
       if (recharge) {
         const response = await walletHandler({
           user_id,
-          transactionType: 'credit',
+          transactionType: "credit",
           amount,
-          transaction_reason: `You have recharged ${toFixedMethod(amount)} PHP to your wallet.`,
+          transaction_reason: `You have recharged ${toFixedMethod(
+            amount
+          )} PHP to your wallet.`,
         });
         return res.status(200).json(response);
       }
@@ -1295,19 +1344,23 @@ const editWalletTopup = async (req, res) => {
         // Debit from sender
         await walletHandler({
           user_id,
-          transactionType: 'debit',
+          transactionType: "debit",
           amount,
-          transaction_reason: `You have sent ${toFixedMethod(amount)} PHP to ${findTo?.name}.`,
-          res: res
+          transaction_reason: `You have sent ${toFixedMethod(amount)} PHP to ${
+            findTo?.name
+          }.`,
+          res: res,
         });
 
         // Credit to receiver
         const creditResponse = await walletHandler({
           user_id: opposite_user_id,
-          transactionType: 'credit',
+          transactionType: "credit",
           amount,
-          transaction_reason: `You have received ${toFixedMethod(amount)} PHP from ${findFrom?.name}.`,
-          res: res
+          transaction_reason: `You have received ${toFixedMethod(
+            amount
+          )} PHP from ${findFrom?.name}.`,
+          res: res,
         });
 
         if (!creditResponse.status) {
@@ -1323,11 +1376,14 @@ const editWalletTopup = async (req, res) => {
 
     // Non-admin wallet handling
     else {
-      const validation = validatorMethod({ user_id, amount, card_number, year, month, cvv }, res);
+      const validation = validatorMethod(
+        { user_id, amount, card_number, year, month, cvv },
+        res
+      );
       if (validation) {
         const response = await walletHandler({
           user_id,
-          transactionType: 'credit',
+          transactionType: "credit",
           amount,
         });
 
@@ -1346,7 +1402,6 @@ const editWalletTopup = async (req, res) => {
   }
 };
 
-
 const createPlaceOrder = async (req, res) => {
   try {
     const {
@@ -1360,19 +1415,22 @@ const createPlaceOrder = async (req, res) => {
       total_price,
       transaction_type,
       branch_id,
-      priority
+      priority,
     } = req.body;
-    const validation = validatorMethod({
-      user_id,
-      rider_id,
-      subject_file_ids,
-      address_id,
-      sub_total,
-      total_price,
-      transaction_type
-    }, res);
+    const validation = validatorMethod(
+      {
+        user_id,
+        rider_id,
+        subject_file_ids,
+        address_id,
+        sub_total,
+        total_price,
+        transaction_type,
+      },
+      res
+    );
 
-    if (transaction_type == 'wallet') {
+    if (transaction_type == "wallet") {
       const find = await Wallet.findOne({ user_id });
       if (find) {
         const currentWalletAmount = parseFloat(find?.amount);
@@ -1382,10 +1440,18 @@ const createPlaceOrder = async (req, res) => {
         if (currentWalletAmount < totalPrice) {
           return res.status(200).json({
             status: false,
-            message: `You need to top up ${toFixedMethod(totalPrice - currentWalletAmount)} PHP.`,
+            message: `You need to top up ${toFixedMethod(
+              totalPrice - currentWalletAmount
+            )} PHP.`,
           });
         } else {
-          const response = await walletHandler({ user_id, transactionType: 'debit', amount: total_price, transaction_reason: "You have placed the order. This is the amount that has been debited." })
+          const response = await walletHandler({
+            user_id,
+            transactionType: "debit",
+            amount: total_price,
+            transaction_reason:
+              "You have placed the order. This is the amount that has been debited.",
+          });
           if (response?.status == true) {
             const created = await Order.create({
               user_id,
@@ -1399,7 +1465,7 @@ const createPlaceOrder = async (req, res) => {
               sub_total,
               total_price,
               transaction_id: response?.data?.transaction_id,
-              priority
+              priority,
             });
             if (created) {
               res.status(200).json({
@@ -1423,13 +1489,19 @@ const createPlaceOrder = async (req, res) => {
       } else {
         res.status(200).json({
           status: false,
-          message: `You need to top up ${toFixedMethod(total_price)} PHP.`
+          message: `You need to top up ${toFixedMethod(total_price)} PHP.`,
         });
       }
     }
 
     if (validation) {
-      const response = await walletHandler({ user_id, transactionType: 'debit', amount: total_price, transaction_reason: "You have placed the order. This is the amount that has been debited." })
+      const response = await walletHandler({
+        user_id,
+        transactionType: "debit",
+        amount: total_price,
+        transaction_reason:
+          "You have placed the order. This is the amount that has been debited.",
+      });
       const created = await Order.create({
         user_id,
         rider_id,
@@ -1442,7 +1514,7 @@ const createPlaceOrder = async (req, res) => {
         sub_total,
         total_price,
         transaction_id: response?.data?.transaction_id,
-        priority
+        priority,
       });
       if (created) {
         res.status(200).json({
@@ -1467,10 +1539,12 @@ const fetchOrderList = async (req, res) => {
     const { user_id } = req.body;
     const validation = validatorMethod({ user_id }, res);
     if (validation) {
-      const find = await Order.find({ user_id }).sort({ created_at: -1 }).lean();
+      const find = await Order.find({ user_id })
+        .sort({ created_at: -1 })
+        .lean();
       const modifiedArray = find?.map((item, index) => {
-        return { ...item, order_id: generateClaimCode(item.order_id, 'ORD#') }
-      })
+        return { ...item, order_id: generateClaimCode(item.order_id, "ORD#") };
+      });
       res.status(200).json({
         status: true,
         message: "Order fetch successfully.",
@@ -1507,19 +1581,19 @@ const fetchTransactions = async (req, res) => {
           },
         },
         {
-          $unwind: "$transactions" // Deconstruct the transactions array
+          $unwind: "$transactions", // Deconstruct the transactions array
         },
         {
-          $sort: { "transactions.created_at": -1 } // Sort transactions in descending order based on created_at
+          $sort: { "transactions.created_at": -1 }, // Sort transactions in descending order based on created_at
         },
         {
           $group: {
             _id: "$_id", // Group by Wallet's _id
             user_id: { $first: "$user_id" }, // Include user_id
             amount: { $first: "$amount" }, // Include wallet amount
-            transactions: { $push: "$transactions" } // Reconstruct transactions array with sorted transactions
-          }
-        }
+            transactions: { $push: "$transactions" }, // Reconstruct transactions array with sorted transactions
+          },
+        },
       ]);
       res.status(200).json({
         status: true,
@@ -1540,7 +1614,10 @@ const fetchTransactions = async (req, res) => {
 const SendMessages = async (req, res) => {
   try {
     const { user_id, opposite_user_id, message } = req.body;
-    const validation = validatorMethod({ user_id, opposite_user_id, message }, res);
+    const validation = validatorMethod(
+      { user_id, opposite_user_id, message },
+      res
+    );
     const createdAt = new Date().toISOString();
     if (!validation) return;
     const room_id = await generateChatRoomId(user_id, opposite_user_id);
@@ -1552,7 +1629,11 @@ const SendMessages = async (req, res) => {
       find.last_message = message || find.last_message;
       find.messages = JSON.stringify(parseMessage);
       await find.save();
-      sendNotification(opposite_user_id, "Copify Chat", `You have received a message from ${user?.name || ""}: ${message}.`)
+      sendNotification(
+        opposite_user_id,
+        "Copify Chat",
+        `You have received a message from ${user?.name || ""}: ${message}.`
+      );
     } else {
       const created = await Chat.create({
         last_message: message,
@@ -1562,7 +1643,11 @@ const SendMessages = async (req, res) => {
         user_id_2: opposite_user_id,
       });
       if (created) {
-        sendNotification(opposite_user_id, "Copify Chat", `You have received a message from ${user?.name || ""}: ${message}.`)
+        sendNotification(
+          opposite_user_id,
+          "Copify Chat",
+          `You have received a message from ${user?.name || ""}: ${message}.`
+        );
       }
     }
 
@@ -1586,8 +1671,8 @@ const fetchMessagesList = async (req, res) => {
         return {
           ...item,
           messages: item?.messages ? JSON.parse(item?.messages) : [],
-        }
-      })
+        };
+      });
       res.status(200).json({
         status: true,
         message: "Messages fetch successfully.",
@@ -1618,27 +1703,29 @@ const fetchInboxList = async (req, res) => {
 
     // Fetch chats where user_id matches either user_id_1 or user_id_2
     const find = await Chat.find({
-      $or: [
-        { user_id_1: user_id },
-        { user_id_2: user_id },
-      ]
+      $or: [{ user_id_1: user_id }, { user_id_2: user_id }],
     }).lean();
 
     // Process each chat document
-    const modifiedArray = await Promise.all(find.map(async (item) => {
-      // Determine the opposite user ID
-      const opposite_user_id = item.user_id_1 === user_id ? item.user_id_2 : item.user_id_1;
+    const modifiedArray = await Promise.all(
+      find.map(async (item) => {
+        // Determine the opposite user ID
+        const opposite_user_id =
+          item.user_id_1 === user_id ? item.user_id_2 : item.user_id_1;
 
-      // Fetch the details of the opposite user
-      const opposite_user_detail = await Users.findOne({ user_id: opposite_user_id }).lean();
+        // Fetch the details of the opposite user
+        const opposite_user_detail = await Users.findOne({
+          user_id: opposite_user_id,
+        }).lean();
 
-      // Exclude messages and include opposite user's name
-      const { messages, ...rest } = item;
-      return {
-        ...rest,
-        name: opposite_user_detail?.name
-      };
-    }));
+        // Exclude messages and include opposite user's name
+        const { messages, ...rest } = item;
+        return {
+          ...rest,
+          name: opposite_user_detail?.name,
+        };
+      })
+    );
 
     res.status(200).json({
       status: true,
@@ -1670,13 +1757,18 @@ const fetchPlaceOrders = async (req, res) => {
                 subject_id: subjectFile.subject_id,
               });
 
-              return { ...subjectFile._doc, subject_name: `${findSubject?.subject_description + findSubject.subject_code} - Section ${findSubject.section}` }; // subjectFile ka data return karein with subject details
+              return {
+                ...subjectFile._doc,
+                subject_name: `${
+                  findSubject?.subject_description + findSubject.subject_code
+                } - Section ${findSubject.section}`,
+              }; // subjectFile ka data return karein with subject details
             })
           );
 
           return {
             ...item,
-            subject_files: subjectFilesWithSubjectData
+            subject_files: subjectFilesWithSubjectData,
           }; // Return updated item with subject data
         })
       );
@@ -1703,20 +1795,25 @@ const createRider = async (req, res) => {
 
     if (validation) {
       const find = await Users.findOne({ user_id });
-      find.rider_status_for_student = rider_status_for_student || find.rider_status_for_student
-      await find.save()
+      find.rider_status_for_student =
+        rider_status_for_student || find.rider_status_for_student;
+      await find.save();
       if (find) {
         const messageHandler = () => {
           if (rider_status_for_student == riderAccountStatus.apply) {
-            return "Your request has been sent to the admin."
+            return "Your request has been sent to the admin.";
+          } else if (rider_status_for_student == riderAccountStatus.approve) {
+            return "Rider account has been approve";
           } else if (rider_status_for_student == riderAccountStatus.activate) {
-            return "Rider accound has been activate"
-          } else if (rider_status_for_student == riderAccountStatus.de_activate) {
-            return "Rider accound has been de-activate"
+            return "Rider account has been activate";
+          } else if (
+            rider_status_for_student == riderAccountStatus.de_activate
+          ) {
+            return "Rider account has been de-activate";
           } else if (rider_status_for_student == riderAccountStatus.blocked) {
-            return "Rider accound blocked"
+            return "Rider account blocked";
           }
-        }
+        };
         return res.status(200).json({
           status: true,
           message: messageHandler(),
@@ -1733,6 +1830,38 @@ const createRider = async (req, res) => {
   }
 };
 
+const fetchRiderList = async (req, res) => {
+  try {
+    const find = await Users.find({
+      role_id: "3",
+      rider_status_for_student: { $ne: riderAccountStatus.in_active },
+    }).lean();
+    if (find) {
+      const filter = find.filter(
+        (item, index) => item.rider_status_for_student != "inActive"
+      );
+
+      const modifiedArray = filter.map((item, index) => {
+        return {
+          ...item,
+          claim_code: generateClaimCode(item.user_id),
+        };
+      });
+      return res.status(200).json({
+        status: true,
+        message: "Rider fetch successfully.",
+        data: modifiedArray,
+      });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
 
 const fetchRiderStatus = async (req, res) => {
   try {
@@ -1745,7 +1874,7 @@ const fetchRiderStatus = async (req, res) => {
         return res.status(200).json({
           status: true,
           data: {
-            rider_status: find?.rider_status_for_student
+            rider_status: find?.rider_status_for_student,
           },
           message: "",
         });
@@ -1767,21 +1896,23 @@ const fetchActivationTime = async (req, res) => {
     const validation = validatorMethod({ user_id }, res);
 
     if (validation) {
-      const find = await RiderActivation.findOne({ user_id }).lean()
+      const find = await RiderActivation.findOne({ user_id }).lean();
       if (find) {
         return res.status(200).json({
           status: true,
           data: JSON.parse(find.activation_time),
           message: "Fetch activation successfully.",
         });
-
       } else {
-        console.log(JSON.stringify(activation_array))
-        const created = await RiderActivation.create({ user_id, activation_time: JSON.stringify(activation_array) });
+        console.log(JSON.stringify(activation_array));
+        const created = await RiderActivation.create({
+          user_id,
+          activation_time: JSON.stringify(activation_array),
+        });
         if (created) {
           return res.status(200).json({
             status: true,
-            data: activation_array
+            data: activation_array,
           });
         } else {
           res.status(200).json({
@@ -1789,7 +1920,6 @@ const fetchActivationTime = async (req, res) => {
             message: "Something went wrong!",
           });
         }
-
       }
     }
   } catch (error) {
@@ -1800,7 +1930,6 @@ const editActivationTime = async (req, res) => {
   try {
     const { user_id, activation_time } = req.body;
     const validation = validatorMethod({ user_id }, res);
-
 
     if (validation) {
       const find = await RiderActivation.findOne({ user_id });
@@ -1832,11 +1961,17 @@ const fetchRiderDashboard = async (req, res) => {
       if (is_complete) {
         const find = await Order.find({
           rider_id: user_id,
-          order_status: orderStatus.completed
-        }).sort({ created_at: -1 }).lean();
-        const modifiedArray = find?.map((item, index) => {
-          return { ...item, claim_code: generateClaimCode(item.user_id), generate_order_id: generateClaimCode(item.order_id, 'ORD#') }
+          order_status: orderStatus.completed,
         })
+          .sort({ created_at: -1 })
+          .lean();
+        const modifiedArray = find?.map((item, index) => {
+          return {
+            ...item,
+            claim_code: generateClaimCode(item.user_id),
+            generate_order_id: generateClaimCode(item.order_id, "ORD#"),
+          };
+        });
         res.status(200).json({
           status: true,
           message: "Order fetch successfully.",
@@ -1845,11 +1980,17 @@ const fetchRiderDashboard = async (req, res) => {
       } else {
         const find = await Order.find({
           rider_id: user_id,
-          order_status: { $ne: orderStatus.completed }
-        }).sort({ created_at: -1 }).lean();
-        const modifiedArray = find?.map((item, index) => {
-          return { ...item, claim_code: generateClaimCode(item.user_id), generate_order_id: generateClaimCode(item.order_id, 'ORD#') }
+          order_status: { $ne: orderStatus.completed },
         })
+          .sort({ created_at: -1 })
+          .lean();
+        const modifiedArray = find?.map((item, index) => {
+          return {
+            ...item,
+            claim_code: generateClaimCode(item.user_id),
+            generate_order_id: generateClaimCode(item.order_id, "ORD#"),
+          };
+        });
         res.status(200).json({
           status: true,
           message: "Order fetch successfully.",
@@ -1875,7 +2016,7 @@ const fetchOrderDetail = async (req, res) => {
     if (validation) {
       const find = await Order.aggregate([
         {
-          $match: { order_id: Number(order_id) } // Find the order by order_id
+          $match: { order_id: Number(order_id) }, // Find the order by order_id
         },
         {
           $lookup: {
@@ -1884,18 +2025,18 @@ const fetchOrderDetail = async (req, res) => {
             pipeline: [
               {
                 $match: {
-                  $expr: { $eq: [{ $toString: "$user_id" }, "$$user_id"] } // Convert app_users.user_id to string for comparison
-                }
-              }
+                  $expr: { $eq: [{ $toString: "$user_id" }, "$$user_id"] }, // Convert app_users.user_id to string for comparison
+                },
+              },
             ],
-            as: "user_detail" // The name for the result of the joined data
-          }
+            as: "user_detail", // The name for the result of the joined data
+          },
         },
         {
           $unwind: {
             path: "$user_detail",
-            preserveNullAndEmptyArrays: true // This will allow it to continue if the field is not an array or is null
-          }
+            preserveNullAndEmptyArrays: true, // This will allow it to continue if the field is not an array or is null
+          },
         },
         {
           $lookup: {
@@ -1907,22 +2048,22 @@ const fetchOrderDetail = async (req, res) => {
                   $expr: {
                     $and: [
                       { $eq: [{ $toString: "$user_id" }, "$$user_id"] }, // Convert addresses.user_id to string for comparison with order's user_id
-                      { $eq: [{ $toString: "$address_id" }, "$$address_id"] } // Ensure address_id from Order matches address_id in addresses
-                    ]
-                  }
-                }
-              }
+                      { $eq: [{ $toString: "$address_id" }, "$$address_id"] }, // Ensure address_id from Order matches address_id in addresses
+                    ],
+                  },
+                },
+              },
             ],
-            as: "address" // The name for the result of the joined data
-          }
+            as: "address", // The name for the result of the joined data
+          },
         },
         {
           $unwind: {
             path: "$address",
-            preserveNullAndEmptyArrays: true // This will allow it to continue if the field is not an array or is null
-          }
+            preserveNullAndEmptyArrays: true, // This will allow it to continue if the field is not an array or is null
+          },
         },
-      ])
+      ]);
 
       // Check if an order was found
       if (find.length === 0) {
@@ -1934,7 +2075,7 @@ const fetchOrderDetail = async (req, res) => {
 
       // Fetch associated subject files
       const findFiles = await SubjectFiles.find({
-        subject_file_id: { $in: JSON.parse(find[0]?.subject_file_ids || '[]') }, // Fallback to an empty array if not found
+        subject_file_id: { $in: JSON.parse(find[0]?.subject_file_ids || "[]") }, // Fallback to an empty array if not found
       });
 
       // Return both order details and associated files
@@ -1943,7 +2084,7 @@ const fetchOrderDetail = async (req, res) => {
         message: "Order fetch successfully.",
         data: {
           order: find[0], // The order details
-          subjectFiles: findFiles // The associated subject files
+          subjectFiles: findFiles, // The associated subject files
         },
       });
     } else {
@@ -1963,26 +2104,28 @@ const editOrderStatus = async (req, res) => {
     const validation = validatorMethod({ order_id, order_status }, res);
 
     if (validation) {
-      const find = await Order.findOne({ order_id })
-      find.order_status = order_status || find.order_status
+      const find = await Order.findOne({ order_id });
+      find.order_status = order_status || find.order_status;
       if (find?.rider_id && find.order_status == orderStatus.completed) {
         await walletHandler({
           user_id: find?.rider_id,
-          transactionType: 'credit',
+          transactionType: "credit",
           amount,
           transaction_reason: `You have completed the order; ${find.rider_charges} PHP is being sent to your wallet.`,
         });
       }
-      await find.save()
+      await find.save();
       // Check if an order was found
       if (find) {
-        sendNotification(find?.user_id, "Order Status", `Your order status is ${find.order_status}.`)
+        sendNotification(
+          find?.user_id,
+          "Order Status",
+          `Your order status is ${find.order_status}.`
+        );
         return res.status(200).json({
           status: true,
           message: "Order status update successfully.",
         });
-
-
       }
     } else {
       res.status(200).json({
@@ -2020,12 +2163,18 @@ const fetchRiderRadius = async (req, res) => {
 const createOrderProof = async (req, res) => {
   try {
     const { user_id, order_id } = req.body;
-    const files = Array.isArray(req.files) ? req.files?.map((item, index) => item.location) : []
-    console.log("files", files)
+    const files = Array.isArray(req.files)
+      ? req.files?.map((item, index) => item.location)
+      : [];
+    console.log("files", files);
 
     const validation = validatorMethod({ user_id, order_id }, res);
     if (validation) {
-      const created = await OrderProof.create({ user_id: user_id, order_id, file_uploads: files });
+      const created = await OrderProof.create({
+        user_id: user_id,
+        order_id,
+        file_uploads: files,
+      });
       res.status(200).json({
         status: true,
         message: "Create order proof successfully.",
@@ -2115,5 +2264,6 @@ module.exports = {
   deleteTeacherSubject,
   logout,
   createOrderProof,
-  fetchOrderProof
+  fetchOrderProof,
+  fetchRiderList,
 };

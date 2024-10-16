@@ -6,7 +6,11 @@ const {
   generateClaimCode,
   wrongValueCheck,
 } = require("../../../utils/helpers");
-const { secret_key, displayDate } = require("../../../utils/static-values");
+const {
+  secret_key,
+  displayDate,
+  riderAccountStatus,
+} = require("../../../utils/static-values");
 const AdminUsers = require("../../models/admin/admin-users");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
@@ -31,7 +35,10 @@ const login = async (req, res) => {
     const validation = validatorMethod({ email, password }, res);
 
     if (validation) {
-      const find = await Users.findOne({ email, role_id: { $in: [1, 2, 3, 4] } });
+      const find = await Users.findOne({
+        email,
+        role_id: { $in: [1, 2, 3, 4] },
+      });
 
       if (!find) {
         return res.status(200).json({
@@ -40,7 +47,6 @@ const login = async (req, res) => {
         });
       }
 
-      // Compare the provided password with the stored hashed password
       const isMatch = await bcrypt.compare(password, find.password);
 
       if (!isMatch) {
@@ -48,10 +54,11 @@ const login = async (req, res) => {
           status: false,
           message: "Invalid email or password.",
         });
-      } else if (find?.account_status == 'inActive') {
+      } else if (find?.account_status === "inActive") {
         return res.status(200).json({
           status: false,
-          message: "Your account has been in Active. Please contact the admin for assistance.",
+          message:
+            "Your account has been in Active. Please contact the admin for assistance.",
         });
       } else {
         const token = await jwt.sign(
@@ -61,12 +68,21 @@ const login = async (req, res) => {
 
         // Save the token to the user document
         find.token = token;
-        await find.save();
+
+        // Generate and save the claim number
+        find.claim_number = generateClaimCode(find.user_id);
+
+        await find.save(); // Save the updated user document
+
+        const data = {
+          ...find._doc, // Use _doc to avoid Mongoose metadata
+          claim_number: find.claim_number, // Now it has the generated claim_number
+        };
 
         res.status(200).json({
           status: true,
           message: "Login successful.",
-          data: find,
+          data: data, // This will include claim_number
         });
       }
     }
@@ -92,7 +108,7 @@ const register = async (req, res) => {
           email,
           password,
           name,
-          role_id
+          role_id,
         });
         if (created) {
           const token = await jwt.sign(
@@ -123,7 +139,10 @@ const register = async (req, res) => {
 const createBranch = async (req, res) => {
   try {
     const { email, password, name, role_id, branch_address } = req.body;
-    const validation = validatorMethod({ email, name, password, role_id, branch_address }, res);
+    const validation = validatorMethod(
+      { email, name, password, role_id, branch_address },
+      res
+    );
     if (validation) {
       const find = await Users.findOne({ email });
       if (find) {
@@ -139,7 +158,7 @@ const createBranch = async (req, res) => {
           name,
           role_id,
           branch_address,
-          file_upload: req.file ? req.file.location : null
+          file_upload: req.file ? req.file.location : null,
         });
         if (created) {
           const token = await jwt.sign(
@@ -189,10 +208,13 @@ const editBranch = async (req, res) => {
 
 const fetchBranchList = async (req, res) => {
   try {
-    const find = await Users.find({ role_id: "2", account_status: "active" }).lean()
+    const find = await Users.find({
+      role_id: "2",
+      account_status: "active",
+    }).lean();
     const modifiedArray = find?.map((item, index) => {
-      return { ...item, branch_id: item.user_id }
-    })
+      return { ...item, branch_id: item.user_id };
+    });
     res.status(200).json({
       status: true,
       message: "Branch fetch successfully.",
@@ -232,7 +254,7 @@ const createInstitute = async (req, res) => {
         user_id,
         institute_name,
         institute_location,
-        file_upload: req.file ? req.file.location : null
+        file_upload: req.file ? req.file.location : null,
       });
       if (created) {
         res.status(200).json({
@@ -362,8 +384,8 @@ const fetchInstituteTeacherAndStudent = async (req, res) => {
         // Modify array by adding role_type based on role_id
         const modifiedArray = find.map((item) => ({
           ...item,
-          role_type: item.role_id === '3' ? 'Student' : 'Teacher',
-          claim_code: generateClaimCode(item.user_id)
+          role_type: item.role_id === "3" ? "Student" : "Teacher",
+          claim_code: generateClaimCode(item.user_id),
         }));
 
         return res.status(200).json({
@@ -388,7 +410,6 @@ const fetchInstituteTeacherAndStudent = async (req, res) => {
   }
 };
 
-
 const editStatusTeacherAndStudent = async (req, res) => {
   try {
     const { user_id } = req.body;
@@ -396,12 +417,14 @@ const editStatusTeacherAndStudent = async (req, res) => {
 
     if (validation) {
       const updated = await Users.findOne({ user_id });
-      updated.account_status = updated.account_status == 'active' ? 'inActive' : 'active';
-      updated.token = '';
+      updated.account_status =
+        updated.account_status == "active" ? "inActive" : "active";
+      updated.token = "";
       await updated.save();
       res.status(200).json({
         status: true,
-        message: "Status updated successfully. If set to active or disable, the user will be logged out from the app."
+        message:
+          "Status updated successfully. If set to active or disable, the user will be logged out from the app.",
       });
     }
   } catch (error) {
@@ -758,16 +781,28 @@ const fetchDeliveryChargesList = async (req, res) => {
 
 const createPaperSize = async (req, res) => {
   try {
-    const { user_id, paper_size, black_and_white_paper_size_price, colorful_paper_price } = req.body;
-    const validation = validatorMethod({ user_id, paper_size, black_and_white_paper_size_price, colorful_paper_price }, res);
-
+    const {
+      user_id,
+      paper_size,
+      black_and_white_paper_size_price,
+      colorful_paper_price,
+    } = req.body;
+    const validation = validatorMethod(
+      {
+        user_id,
+        paper_size,
+        black_and_white_paper_size_price,
+        colorful_paper_price,
+      },
+      res
+    );
 
     if (validation) {
       const created = await PaperSizes.create({
         user_id,
         paper_size,
         black_and_white_paper_size_price,
-        colorful_paper_price
+        colorful_paper_price,
       });
       if (created) {
         res.status(200).json({
@@ -789,15 +824,23 @@ const createPaperSize = async (req, res) => {
 
 const editPaperSize = async (req, res) => {
   try {
-    const { paper_size, paper_size_id, black_and_white_paper_size_price, colorful_paper_price } = req.body;
+    const {
+      paper_size,
+      paper_size_id,
+      black_and_white_paper_size_price,
+      colorful_paper_price,
+    } = req.body;
     const validation = validatorMethod({ paper_size_id }, res);
 
     if (validation) {
       // Update the document by ID
       const updated = await PaperSizes.findOne({ paper_size_id });
       updated.paper_size = paper_size || updated.paper_size;
-      updated.black_and_white_paper_size_price = black_and_white_paper_size_price || updated.black_and_white_paper_size_price;
-      updated.colorful_paper_price = colorful_paper_price || updated.colorful_paper_price;
+      updated.black_and_white_paper_size_price =
+        black_and_white_paper_size_price ||
+        updated.black_and_white_paper_size_price;
+      updated.colorful_paper_price =
+        colorful_paper_price || updated.colorful_paper_price;
       await updated.save();
       res.status(200).json({
         status: true,
@@ -904,7 +947,7 @@ const fetchPromoCode = async (req, res) => {
     const { promo_code } = req.body;
     if (!wrongValueCheck(promo_code)) {
       const find = await PromoCodes.findOne({
-        promo_code: { $regex: new RegExp(`^${promo_code.toLowerCase()}`, 'i') }
+        promo_code: { $regex: new RegExp(`^${promo_code.toLowerCase()}`, "i") },
       });
 
       if (find) {
@@ -916,11 +959,16 @@ const fetchPromoCode = async (req, res) => {
         if (current_date < start_date_promo_code) {
           res.status(200).json({
             status: false,
-            message: `This promo code is not valid yet. It will be valid from ${displayDate(start_date_promo_code)} to ${displayDate(end_date_promo_code)}.`,
+            message: `This promo code is not valid yet. It will be valid from ${displayDate(
+              start_date_promo_code
+            )} to ${displayDate(end_date_promo_code)}.`,
           });
         }
         // Check if the promo is valid within the start and end date range
-        else if (current_date >= start_date_promo_code && current_date <= end_date_promo_code) {
+        else if (
+          current_date >= start_date_promo_code &&
+          current_date <= end_date_promo_code
+        ) {
           res.status(200).json({
             status: true,
             message: "Promo code fetched successfully.",
@@ -946,7 +994,6 @@ const fetchPromoCode = async (req, res) => {
         message: "Something went wrong!",
       });
     }
-
   } catch (error) {
     catchErrorValidation(error, res);
   }
@@ -1140,7 +1187,7 @@ const createPointIntoPhp = async (req, res) => {
       {
         user_id,
         points,
-        php
+        php,
       },
       res
     );
@@ -1148,7 +1195,7 @@ const createPointIntoPhp = async (req, res) => {
       const created = await PointIntoPhp.create({
         user_id,
         points,
-        php
+        php,
       });
       if (created) {
         res.status(200).json({
@@ -1219,7 +1266,7 @@ const createSubscriptionPlan = async (req, res) => {
       {
         user_id,
         price,
-        month
+        month,
       },
       res
     );
@@ -1227,7 +1274,7 @@ const createSubscriptionPlan = async (req, res) => {
       const created = await SubscriptionPlan.create({
         user_id,
         price,
-        month
+        month,
       });
       if (created) {
         res.status(200).json({
@@ -1283,7 +1330,9 @@ const deleteSubscriptionPlan = async (req, res) => {
     const { subsrciption_plan_id } = req.body;
     const validation = validatorMethod({ subsrciption_plan_id }, res);
     if (validation) {
-      const deleted = await SubscriptionPlan.findOneAndDelete({ subsrciption_plan_id });
+      const deleted = await SubscriptionPlan.findOneAndDelete({
+        subsrciption_plan_id,
+      });
       res.status(200).json({
         status: true,
         message: "Subscription plan delete successfully.",
@@ -1301,8 +1350,13 @@ const fetchTeacherSubjectPage = async (req, res) => {
     if (validation) {
       const find = await Subject.find({ user_id });
       const modfiedArr = await find?.map((item, index) => {
-        return { id: item.subject_id, value: `${item?.subject_description + item.subject_code} - Section ${item.section}` }
-      })
+        return {
+          id: item.subject_id,
+          value: `${item?.subject_description + item.subject_code} - Section ${
+            item.section
+          }`,
+        };
+      });
       res.status(200).json({
         status: true,
         message: "Subject fetch successfully.",
@@ -1324,7 +1378,10 @@ const fetchTeacherSubjectFiles = async (req, res) => {
     const { subject_id, files_type } = req.body;
     const validation = validatorMethod({ subject_id, files_type }, res);
     if (validation) {
-      const find = await SubjectFiles.find({ subject_id, publish_or_save: files_type });
+      const find = await SubjectFiles.find({
+        subject_id,
+        publish_or_save: files_type,
+      });
       res.status(200).json({
         status: true,
         message: "Subject files fetch successfully.",
@@ -1357,7 +1414,6 @@ const deleteTeacherSubjectFiles = async (req, res) => {
   }
 };
 
-
 const fetchSubscriptionPlan = async (req, res) => {
   try {
     const find = await SubscriptionPlan.find({});
@@ -1380,7 +1436,7 @@ const fetchSubscriberList = async (req, res) => {
         {
           $match: {
             teacher_id: Number(teacher_id), // Match documents based on teacher_id
-            subject_id: Number(subject_id)
+            subject_id: Number(subject_id),
           },
         },
         {
@@ -1452,7 +1508,6 @@ const fetchSubscriberList = async (req, res) => {
   }
 };
 
-
 const SearchTeacher = async (req, res) => {
   try {
     const { search } = req.body;
@@ -1463,12 +1518,11 @@ const SearchTeacher = async (req, res) => {
     // Build the $match object to ensure role_id is 3 and apply search if available
     const matchCriteria = {
       role_id: "4", // Only users with role_id 3
-      ...(regex ? {
-        $or: [
-          { name: { $regex: regex } },
-          { email: { $regex: regex } },
-        ],
-      } : {}),
+      ...(regex
+        ? {
+            $or: [{ name: { $regex: regex } }, { email: { $regex: regex } }],
+          }
+        : {}),
     };
 
     const find = await Users.aggregate([
@@ -1503,12 +1557,11 @@ const SearchStudent = async (req, res) => {
     // Build the $match object to ensure role_id is 3 and apply search if available
     const matchCriteria = {
       role_id: "3", // Only users with role_id 3
-      ...(regex ? {
-        $or: [
-          { name: { $regex: regex } },
-          { email: { $regex: regex } },
-        ],
-      } : {}),
+      ...(regex
+        ? {
+            $or: [{ name: { $regex: regex } }, { email: { $regex: regex } }],
+          }
+        : {}),
     };
 
     const find = await Users.aggregate([
@@ -1533,6 +1586,56 @@ const SearchStudent = async (req, res) => {
   }
 };
 
+const SearchRider = async (req, res) => {
+  try {
+    const { search } = req.body;
+
+    // Constructing regex based on the input
+    const regex = search ? new RegExp(search, "i") : null;
+
+    // Build the $match object to ensure role_id is 3 and apply search if available
+    // const matchCriteria = {
+    //   role_id: "3", // Only users with role_id 3
+    //   ...(regex
+    //     ? {
+    //         $or: [{ name: { $regex: regex } }, { email: { $regex: regex } }],
+    //       }
+    //     : {}),
+    // };
+
+    const matchCriteria = {
+      role_id: "3", // Only users with role_id 3
+      rider_status_for_student: {
+        $nin: ["inActive", riderAccountStatus.in_active],
+      }, // Exclude inActive and inActivate
+      ...(regex
+        ? {
+            $or: [{ name: { $regex: regex } }, { email: { $regex: regex } }],
+          }
+        : {}),
+    };
+
+    const find = await Users.aggregate([
+      {
+        $match: matchCriteria,
+      },
+    ]);
+
+    // If users are found, modify the array
+    const modifiedArray = find.map((item) => ({
+      ...item,
+      claim_number: generateClaimCode(item.user_id),
+    }));
+
+    res.status(200).json({
+      status: true,
+      message: "Students fetched successfully.",
+      data: modifiedArray.length > 0 ? modifiedArray : [],
+    });
+  } catch (error) {
+    catchErrorValidation(error, res);
+  }
+};
 
 module.exports = {
   login,
@@ -1592,5 +1695,6 @@ module.exports = {
   fetchTeacherSubjectFiles,
   deleteTeacherSubjectFiles,
   fetchSubscriberList,
-  fetchPromoCode
+  fetchPromoCode,
+  SearchRider,
 };

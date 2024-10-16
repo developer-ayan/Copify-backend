@@ -62,12 +62,20 @@ const {
   createBranch,
   fetchBranchList,
   editBranch,
-  deleteUser
+  deleteUser,
+  SearchRider,
 } = require("../controllers/admin");
 
 // Import middleware
 const { authAdminMiddleware } = require("../middlewares/authMiddleware");
-const { SendMessages, fetchInboxList, fetchMessagesList, fetchSubscribeSubjectForStudent, fetchPlaceOrders } = require("../controllers/app");
+const {
+  SendMessages,
+  fetchInboxList,
+  fetchMessagesList,
+  fetchSubscribeSubjectForStudent,
+  fetchPlaceOrders,
+  fetchRiderList,
+} = require("../controllers/app");
 
 // Authentication routes
 router.post("/login", upload, login);
@@ -78,7 +86,12 @@ router.post("/fetch_branch_list", authAdminMiddleware, upload, fetchBranchList);
 router.post("/delete_user", authAdminMiddleware, upload, deleteUser);
 
 // Institute routes with authentication middleware
-router.post("/create_institute", authAdminMiddleware, fileUpload, createInstitute);
+router.post(
+  "/create_institute",
+  authAdminMiddleware,
+  fileUpload,
+  createInstitute
+);
 router.post("/edit_institute", authAdminMiddleware, fileUpload, editInstitute);
 router.post("/delete_institute", authAdminMiddleware, upload, deleteInstitute);
 router.post(
@@ -94,8 +107,18 @@ router.post(
   upload,
   fetchInstituteList
 );
-router.post("/fetch_institute_teacher_and_student_list", authAdminMiddleware, upload, fetchInstituteTeacherAndStudent);
-router.post("/edit_status_teacher_and_student", authAdminMiddleware, upload, editStatusTeacherAndStudent);
+router.post(
+  "/fetch_institute_teacher_and_student_list",
+  authAdminMiddleware,
+  upload,
+  fetchInstituteTeacherAndStudent
+);
+router.post(
+  "/edit_status_teacher_and_student",
+  authAdminMiddleware,
+  upload,
+  editStatusTeacherAndStudent
+);
 
 // department routes with authentication middleware
 router.post(
@@ -210,7 +233,8 @@ router.post(
   "/fetch_semester_list",
   authAdminMiddleware,
   upload,
-  fetchSemesterList)
+  fetchSemesterList
+);
 // point into php routes with authentication middleware
 router.post(
   "/create_point_into_php",
@@ -218,7 +242,12 @@ router.post(
   fileUpload,
   createPointIntoPhp
 );
-router.post("/edit_point_into_php", authAdminMiddleware, fileUpload, editPointIntoPhp);
+router.post(
+  "/edit_point_into_php",
+  authAdminMiddleware,
+  fileUpload,
+  editPointIntoPhp
+);
 router.post(
   "/fetch_point_into_php_list",
   authAdminMiddleware,
@@ -233,7 +262,12 @@ router.post(
   fileUpload,
   createSubscriptionPlan
 );
-router.post("/edit_subscription_plan", authAdminMiddleware, fileUpload, editSubscriptionPlan);
+router.post(
+  "/edit_subscription_plan",
+  authAdminMiddleware,
+  fileUpload,
+  editSubscriptionPlan
+);
 router.post(
   "/delete_subscription_plan",
   authAdminMiddleware,
@@ -248,17 +282,8 @@ router.post(
 );
 
 // teacher dashboard routes with authentication middleware
-router.post(
-  "/search_teacher",
-  authAdminMiddleware,
-  upload,
-  SearchTeacher
-);
-router.post(
-  "/fetch_teacher_subject_list",
-  upload,
-  fetchTeacherSubjectPage
-);
+router.post("/search_teacher", authAdminMiddleware, upload, SearchTeacher);
+router.post("/fetch_teacher_subject_list", upload, fetchTeacherSubjectPage);
 router.post(
   "/fetch_teacher_subject_file_list",
   authAdminMiddleware,
@@ -279,38 +304,29 @@ router.post(
 );
 
 // student dashboard routes with authentication middleware
-router.post(
-  "/search_student",
-  authAdminMiddleware,
-  upload,
-  SearchStudent
-);
+router.post("/search_student", authAdminMiddleware, upload, SearchStudent);
+router.post("/search_rider", authAdminMiddleware, upload, SearchRider);
 router.post(
   "/fetch_subscribe_subject_for_student",
   authAdminMiddleware,
   upload,
   fetchSubscribeSubjectForStudent
 );
-router.post("/fetch_place_orders", authAdminMiddleware, upload, fetchPlaceOrders);
-
-
 router.post(
-  "/send_message",
+  "/fetch_place_orders",
   authAdminMiddleware,
   upload,
-  SendMessages
+  fetchPlaceOrders
 );
+router.post("/fetch_rider_list", authAdminMiddleware, upload, fetchRiderList);
+
+router.post("/send_message", authAdminMiddleware, upload, SendMessages);
 router.post(
   "/fetch_messages_list",
   authAdminMiddleware,
   upload,
   fetchMessagesList
 );
-router.post(
-  "/fetch_inbox_list",
-  authAdminMiddleware,
-  upload,
-  fetchInboxList
-);
+router.post("/fetch_inbox_list", authAdminMiddleware, upload, fetchInboxList);
 
 module.exports = router;
