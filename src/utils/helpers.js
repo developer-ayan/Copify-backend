@@ -4,15 +4,16 @@ const Users = require("../api/models/app/user");
 const nodemailer = require("nodemailer");
 const Transaction = require("../api/models/common/transaction");
 const Wallet = require("../api/models/common/wallet");
-const { GoogleAuth } = require('google-auth-library');
-const path = require('path');
-const axios = require('axios');
+const { GoogleAuth } = require("google-auth-library");
+const path = require("path");
+const axios = require("axios");
 const admin = require("firebase-admin");
-const serviceAccount = path.join(__dirname, '../service-jsons/google-service.json');
+const serviceAccount = path.join(
+  __dirname,
+  "../service-jsons/google-service.json"
+);
 // Set the path for the uploads folder
 const uploads = path.join(__dirname, "../uploads/");
-
-
 
 // Initialize Firebase Admin SDK
 admin.initializeApp({
@@ -21,12 +22,12 @@ admin.initializeApp({
 
 const delete_file = async (path, fileName) => {
   console.log(uploads + fileName);
-  fs.unlink(uploads + fileName, function (err) { });
+  fs.unlink(uploads + fileName, function (err) {});
 };
 
 const check_extension = async (fileName) => {
   console.log(uploads + fileName);
-  fs.unlink(uploads + fileName, function (err) { });
+  fs.unlink(uploads + fileName, function (err) {});
 };
 
 const modifiedArray = async (id, value, arr, childData) => {
@@ -42,8 +43,6 @@ const modifiedArray = async (id, value, arr, childData) => {
 
 // Set the path for the uploads folder
 
-
-
 // async function sendNotification(accessToken) {
 
 //   async function getAccessToken() {
@@ -56,7 +55,6 @@ const modifiedArray = async (id, value, arr, childData) => {
 //     console.log("Access Token:", accessToken);
 //     return accessToken;
 //   }
-
 
 //   const url = 'https://fcm.googleapis.com/v1/projects/copify-a5feb/messages:send';
 
@@ -84,12 +82,11 @@ const modifiedArray = async (id, value, arr, childData) => {
 //   }
 // }
 
-
 // Function to get access token for FCM
 async function getAccessToken() {
   const client = new GoogleAuth({
     keyFile: serviceAccount, // Define serviceAccount path in your code
-    scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
+    scopes: ["https://www.googleapis.com/auth/firebase.messaging"],
   });
 
   const accessToken = await client.getAccessToken();
@@ -97,7 +94,13 @@ async function getAccessToken() {
 }
 
 // Function to send notification using FCM
-async function sendNotification(user_id, heading, message, notDataBaseStore, multiple) {
+async function sendNotification(
+  user_id,
+  heading,
+  message,
+  notDataBaseStore,
+  multiple
+) {
   try {
     const find = await Users.findOne({ user_id });
 
@@ -121,16 +124,17 @@ async function sendNotification(user_id, heading, message, notDataBaseStore, mul
 
     // Get access token and send the notification
     const accessToken = await getAccessToken();
-    const fcmUrl = 'https://fcm.googleapis.com/v1/projects/copify-a5feb/messages:send';
+    const fcmUrl =
+      "https://fcm.googleapis.com/v1/projects/copify-a5feb/messages:send";
 
     const response = await axios.post(fcmUrl, fcmMessage, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
-    console.log('Notification sent successfully:', response.data);
+    console.log("Notification sent successfully:", response.data);
     if (!notDataBaseStore) {
       await Notification.create({
         user_id: find?.user_id,
@@ -140,24 +144,25 @@ async function sendNotification(user_id, heading, message, notDataBaseStore, mul
     }
     // Save notification to the database after sending
 
-
     return true;
-
   } catch (error) {
-    console.error('Error sending notification:', error.message);
+    console.error("Error sending notification:", error.message);
     return error.message;
   }
 }
 
-
-
-async function saveTransaction(user_id, amount, transaction_reason, transaction_ref_id) {
+async function saveTransaction(
+  user_id,
+  amount,
+  transaction_reason,
+  transaction_ref_id
+) {
   try {
     const transaction = await Transaction.create({
       user_id: user_id,
       amount,
       transaction_reason,
-      transaction_ref_id
+      transaction_ref_id,
     });
     return true;
   } catch (error) {
@@ -233,7 +238,12 @@ async function sendEmail() {
   console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
 }
 
-const walletHandler = async ({ user_id, amount, transactionType, transaction_reason }) => {
+const walletHandler = async ({
+  user_id,
+  amount,
+  transactionType,
+  transaction_reason,
+}) => {
   try {
     const find = await Wallet.findOne({ user_id });
 
@@ -263,15 +273,17 @@ const walletHandler = async ({ user_id, amount, transactionType, transaction_rea
         const created = await Transaction.create({
           user_id,
           amount: toFixedMethod(amount),
-          transaction_reason: transaction_reason || 'Xendit topup',
+          transaction_reason: transaction_reason || "Xendit topup",
           transaction_type: transactionType,
-          transaction_ref_id: generateTransactionId()
+          transaction_ref_id: generateTransactionId(),
         });
 
         return {
           status: true,
-          message: `${toFixedMethod(amount)} PHP has been ${transactionType}ed from your account.`,
-          data: created
+          message: `${toFixedMethod(
+            amount
+          )} PHP has been ${transactionType}ed from your account.`,
+          data: created,
         };
       } else {
         return {
@@ -289,22 +301,24 @@ const walletHandler = async ({ user_id, amount, transactionType, transaction_rea
 
       const created = await Wallet.create({
         user_id,
-        amount: transactionType === "credit" ? amount : 0
+        amount: transactionType === "credit" ? amount : 0,
       });
 
       if (created) {
         const created = await Transaction.create({
           user_id,
           amount: toFixedMethod(amount),
-          transaction_reason: transaction_reason || 'Xendit topup',
+          transaction_reason: transaction_reason || "Xendit topup",
           transaction_type: transactionType,
-          transaction_ref_id: generateTransactionId()
+          transaction_ref_id: generateTransactionId(),
         });
 
         return {
           status: true,
-          message: `${toFixedMethod(amount)} PHP has been ${transactionType}ed to your account.`,
-          data: created
+          message: `${toFixedMethod(
+            amount
+          )} PHP has been ${transactionType}ed to your account.`,
+          data: created,
         };
       } else {
         return {
@@ -358,7 +372,6 @@ function validatorMethod(args, res) {
   }
 }
 
-
 const catchErrorValidation = async (error, res) => {
   if (error.name === "ValidationError") {
     // Handle Mongoose validation errors
@@ -374,10 +387,10 @@ const catchErrorValidation = async (error, res) => {
 
   return res.status(200).json({
     status: false,
-    message: error?.message || "An unexpected error occurred. Please try again later.",
+    message:
+      error?.message || "An unexpected error occurred. Please try again later.",
   });
 };
-
 
 const generateClaimCode = (number, code) => {
   const prefix = code || "CDK";
@@ -390,25 +403,77 @@ const getValueById = (arr, id) => {
 };
 
 const toFixedMethod = (number) => {
-  const num = isNaN(number) ? "0.00" : parseFloat(number).toFixed(2)
-  return num.toString()
-}
+  const num = isNaN(number) ? "0.00" : parseFloat(number).toFixed(2);
+  return num.toString();
+};
 
 function generateTransactionId() {
-  return 'txn_' + Math.random().toString(36).substr(2, 9) + Date.now();
+  return "txn_" + Math.random().toString(36).substr(2, 9) + Date.now();
 }
 
 function generateChatRoomId(user_id_1, user_id_2) {
   // Sort the user IDs to ensure consistency
   const sortedIds = [user_id_1, user_id_2].sort();
   // Concatenate the sorted IDs to form the chat room ID
-  const merge_id = sortedIds.join('_');
+  const merge_id = sortedIds.join("_");
   return merge_id;
 }
 
 function wrongValueCheck(value) {
-  return value == "undefined" || value == "null" || value == '';
+  return value == "undefined" || value == "null" || value == "";
 }
+
+// const createCharge = async () => {
+//   try {
+//     const response = await axios.post(
+//       "https://api.xendit.co/ewallets/charges",
+//       {
+//         reference_id: "order-id-{{$timestamp}}",
+//         currency: "PHP",
+//         amount: 25000,
+//         checkout_method: "ONE_TIME_PAYMENT",
+//         channel_code: "PH_GCASH",
+//         channel_properties: {
+//           success_redirect_url: "https://redirect.me/payment",
+//           failure_redirect_url: "https://redirect.me/failed",
+//         },
+//         metadata: {
+//           branch_city: "MANILA",
+//         },
+//       },
+//       {
+//         headers: {
+//           Authorization: `Basic ${Buffer.from(`${secret_key}:`).toString(
+//             "base64"
+//           )}`,
+//           "Content-Type": "application/json",
+//         },
+//       }
+//     );
+
+//     console.log("success", response.data);
+//   } catch (error) {
+//     console.error(
+//       "Error creating charge:",
+//       error.response ? error.response.data : error.message
+//     );
+//   }
+// };
+
+// const checkChargeStatus = async (chargeId) => {
+//   try {
+//     const response = await axios.get(`https://api.xendit.co/ewallets/charges/${chargeId}`, {
+//       headers: {
+//         Authorization: `Basic ${Buffer.from(`${secret_key}:`).toString("base64")}`,
+//         "Content-Type": "application/json",
+//       },
+//     });
+
+//     console.log("Charge status:", response.data);
+//   } catch (error) {
+//     console.error("Error checking charge status:", error.response ? error.response.data : error.message);
+//   }
+// };
 
 module.exports = {
   delete_file,
@@ -425,5 +490,5 @@ module.exports = {
   generateTransactionId,
   walletHandler,
   generateChatRoomId,
-  wrongValueCheck
+  wrongValueCheck,
 };
