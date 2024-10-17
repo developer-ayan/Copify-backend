@@ -2378,7 +2378,7 @@ const editOrderStatus = async (req, res) => {
         await walletHandler({
           user_id: find?.rider_id,
           transactionType: "credit",
-          amount,
+          amount: find?.total_price || "0",
           transaction_reason: `You have completed the order; ${find.rider_charges} PHP is being sent to your wallet.`,
         });
       }

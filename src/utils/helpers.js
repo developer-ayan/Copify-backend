@@ -423,58 +423,6 @@ function wrongValueCheck(value) {
   return value == "undefined" || value == "null" || value == "";
 }
 
-// const createCharge = async () => {
-//   try {
-//     const response = await axios.post(
-//       "https://api.xendit.co/ewallets/charges",
-//       {
-//         reference_id: "order-id-{{$timestamp}}",
-//         currency: "PHP",
-//         amount: 25000,
-//         checkout_method: "ONE_TIME_PAYMENT",
-//         channel_code: "PH_GCASH",
-//         channel_properties: {
-//           success_redirect_url: "https://redirect.me/payment",
-//           failure_redirect_url: "https://redirect.me/failed",
-//         },
-//         metadata: {
-//           branch_city: "MANILA",
-//         },
-//       },
-//       {
-//         headers: {
-//           Authorization: `Basic ${Buffer.from(`${secret_key}:`).toString(
-//             "base64"
-//           )}`,
-//           "Content-Type": "application/json",
-//         },
-//       }
-//     );
-
-//     console.log("success", response.data);
-//   } catch (error) {
-//     console.error(
-//       "Error creating charge:",
-//       error.response ? error.response.data : error.message
-//     );
-//   }
-// };
-
-// const checkChargeStatus = async (chargeId) => {
-//   try {
-//     const response = await axios.get(`https://api.xendit.co/ewallets/charges/${chargeId}`, {
-//       headers: {
-//         Authorization: `Basic ${Buffer.from(`${secret_key}:`).toString("base64")}`,
-//         "Content-Type": "application/json",
-//       },
-//     });
-
-//     console.log("Charge status:", response.data);
-//   } catch (error) {
-//     console.error("Error checking charge status:", error.response ? error.response.data : error.message);
-//   }
-// };
-
 module.exports = {
   delete_file,
   sendNotification,
